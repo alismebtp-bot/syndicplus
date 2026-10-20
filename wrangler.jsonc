@@ -1,8 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  // Production : https://syndicplus.syndicplus.workers.dev
+  // Ne jamais déployer en production sans validation explicite du propriétaire (voir AGENTS.md).
   "name": "syndicplus",
-  "main": "src/index.js",
-  "compatibility_date": "2026-10-01",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
   "assets": { "directory": "./public", "binding": "ASSETS" },
   "d1_databases": [
     {
@@ -12,5 +14,22 @@
       "migrations_dir": "migrations"
     }
   ],
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+
+  "env": {
+    // Préproduction : https://syndicplus-staging.syndicplus.workers.dev
+    // Base séparée, données fictives. Déploiement : npm run deploy:staging
+    "staging": {
+      "name": "syndicplus-staging",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "syndicplus-db-staging",
+          "database_id": "6f6261c1-a8c2-4607-92c4-fa641995b78d",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "observability": { "enabled": true }
+    }
+  }
 }
