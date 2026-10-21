@@ -160,7 +160,7 @@ describe('Actions de supervision', () => {
     expect(await r(9002, 'grd_martin')).toBe(403); // pas gestionnaire
     expect(await r(9002, 'mgr_ines')).toBe(403); // autre cabinet
     expect(await r(9002, 'mgr_claire')).toBe(403); // déjà en charge
-    expect(await r(9009, 'mgr_hugo')).toBe(403); // dossier clôturé
+    expect(await r(9009, 'mgr_hugo')).toBe(409); // dossier clôturé
     expect(await r(9002, 'Robert;DROP')).toBe(400);
   });
 
@@ -296,5 +296,40 @@ describe('Audit de sécurité — en-têtes et requêtes inter-sites', () => {
     expect((await call('/api/cockpit/report.csv', { headers })).status).toBe(403);
     expect((await call('/api/demo/logout', { method: 'POST', headers })).status).toBe(403);
     expect((await call('/api/cockpit/overview', { headers: { cookie: lea, 'sec-fetch-site': 'same-origin' } })).status).toBe(200);
+  });
+});
+
+describe('Audit (méthodes Claude Red) — logique métier et requêtes simultanées', () => {
+  it('un dossier clôturé n’accepte que la demande de vérification', async () => {
+    const due = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    expect((await act(9015, { action: 'request_update' }, lea)).status).toBe(409);
+    expect((await act(9015, { action: 'schedule_review', dueOn: due }, lea)).status).toBe(409);
+    expect((await act(9015, { action: 'prepare_decision', kind: 'expenditure', label: 'x', authority: 'AG', amountHt: 5000, confirm: true }, lea)).status).toBe(409);
+    expect((await act(9015, { action: 'request_verification' }, lea)).status).toBe(200);
+  });
+
+  it('dix décisions identiques envoyées en même temps n’en créent qu’une', async () => {
+    const body = { action: 'prepare_decision', kind: 'other', label: 'Course simultanée', authority: 'AG', confirm: true };
+    const codes = await Promise.all(Array.from({ length: 10 }, () => act(9002, body, lea).then((r) => r.status)));
+    expect(codes.filter((c) => c === 200)).toHaveLength(1);
+    expect(codes.filter((c) => c === 409)).toHaveLength(9);
+    const n = await env.DB.prepare("SELECT COUNT(*) AS c FROM decisions WHERE label='Course simultanée'").first<{ c: number }>();
+    expect(n!.c).toBe(1);
+  });
+
+  it('deux réaffectations simultanées : une seule passe, un seul historique', async () => {
+    const body = { action: 'reassign', to: 'mgr_hugo', reason: 'Course', confirm: true };
+    const codes = await Promise.all([act(9014, body, lea), act(9014, body, lea)].map((p) => p.then((r) => r.status)));
+    expect(codes.sort()).toEqual([200, expect.any(Number)]);
+    expect(codes.filter((c) => c === 200)).toHaveLength(1);
+    const h = await env.DB.prepare("SELECT COUNT(*) AS c FROM history WHERE dossier_num=9014 AND text LIKE 'Suivi réaffecté%Motif : Course'").first<{ c: number }>();
+    expect(h!.c).toBe(1);
+  });
+
+  it('ignore les champs non prévus (affectation massive) : une décision préparée reste « en attente »', async () => {
+    const res = await act(9002, { action: 'prepare_decision', kind: 'other', label: 'Champs en trop', authority: 'AG', status: 'approved', decided_by: 'dir_lea', prepared_by: 'mgr_hugo', confirm: true }, lea);
+    expect(res.status).toBe(200);
+    const d = await env.DB.prepare("SELECT status, prepared_by, decided_by FROM decisions WHERE label='Champs en trop'").first();
+    expect(d).toMatchObject({ status: 'pending', prepared_by: 'dir_lea', decided_by: null });
   });
 });

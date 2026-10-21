@@ -182,6 +182,11 @@ async function dossierAction(db: D1Database, p: Principal, s: Snapshot, num: num
     ops.push(notify(db, p, to, num, kind, msg));
   };
   let message = '';
+  // Garde exécutée seule avant le reste : écriture conditionnelle, une requête simultanée identique échoue (pas de doublon)
+  let guard: { stmt: D1PreparedStatement; conflict: string } | null = null;
+
+  // Dossier clôturé : seule une vérification reste possible (règle appliquée par le serveur, pas seulement par l'interface)
+  if (d.status === 'Résolu' && a.action !== 'request_verification') return json({ error: 'Dossier clôturé : seule une demande de vérification est possible.' }, 409);
 
   switch (a.action) {
     case 'request_update': {
@@ -206,7 +211,7 @@ async function dossierAction(db: D1Database, p: Principal, s: Snapshot, num: num
     case 'flag_priority': {
       if (d.status === 'Résolu') return json({ error: 'Dossier clôturé.' }, 409);
       if (d.flagged === a.flagged) return json({ error: a.flagged ? 'Dossier déjà signalé prioritaire.' : 'Dossier non prioritaire.' }, 409);
-      ops.push(db.prepare('UPDATE dossiers SET flagged = ? WHERE num = ? AND cabinet_id = ?').bind(a.flagged ? 1 : 0, num, p.cabinetId));
+      guard = { stmt: db.prepare('UPDATE dossiers SET flagged = ? WHERE num = ? AND cabinet_id = ? AND flagged = ?').bind(a.flagged ? 1 : 0, num, p.cabinetId, a.flagged ? 0 : 1), conflict: 'Le dossier vient d’être modifié. Rechargez la page.' };
       ops.push(history(db, p, num, a.flagged ? `Signalé prioritaire par ${p.name}${a.message ? ` : ${a.message}` : ''}` : `Priorité retirée par ${p.name}`));
       ops.push(audit(db, p, a.flagged ? 'flag_priority' : 'unflag_priority', 'dossier', r, a.message));
       tell(followUp, 'priority', a.flagged ? `${p.name} a signalé ${r} comme prioritaire${a.message ? ` : ${a.message}` : ''}` : `${p.name} a retiré la priorité de ${r}`);
@@ -219,7 +224,7 @@ async function dossierAction(db: D1Database, p: Principal, s: Snapshot, num: num
       if (!v.ok) return json({ error: v.reason }, 403);
       const before = userName(s, d.assigneeId) ?? 'personne';
       const after = userName(s, a.to)!;
-      ops.push(db.prepare('UPDATE dossiers SET assignee_user_id = ? WHERE num = ? AND cabinet_id = ?').bind(a.to, num, p.cabinetId));
+      guard = { stmt: db.prepare('UPDATE dossiers SET assignee_user_id = ? WHERE num = ? AND cabinet_id = ? AND assignee_user_id IS ?').bind(a.to, num, p.cabinetId, d.assigneeId), conflict: 'Le suivi de ce dossier vient d’être modifié. Rechargez la page.' };
       ops.push(history(db, p, num, `Suivi réaffecté par ${p.name} : ${before} → ${after}. Motif : ${a.reason}`));
       ops.push(audit(db, p, 'reassign', 'dossier', r, `${before} → ${after} — ${a.reason}`));
       tell(a.to, 'assignment', `${p.name} vous confie le suivi de ${r} (${d.description}). Motif : ${a.reason}`);
@@ -228,7 +233,13 @@ async function dossierAction(db: D1Database, p: Principal, s: Snapshot, num: num
       break;
     }
     case 'prepare_decision': {
-      ops.push(db.prepare('INSERT INTO decisions (dossier_num,kind,label,amount_ht,status,authority,prepared_by,prepared_at) VALUES (?,?,?,?,?,?,?,?)').bind(num, a.kind, a.label, a.amountHt, 'pending', a.authority, p.userId, new Date(s.now).toISOString()));
+      guard = {
+        stmt: db.prepare(
+          `INSERT INTO decisions (dossier_num,kind,label,amount_ht,status,authority,prepared_by,prepared_at)
+           SELECT ?,?,?,?,'pending',?,?,? WHERE NOT EXISTS (SELECT 1 FROM decisions WHERE dossier_num = ? AND status = 'pending' AND label = ?)`,
+        ).bind(num, a.kind, a.label, a.amountHt, a.authority, p.userId, new Date(s.now).toISOString(), num, a.label),
+        conflict: 'Une décision identique est déjà en attente sur ce dossier.',
+      };
       ops.push(history(db, p, num, `Décision préparée par ${p.name} (à prendre par : ${a.authority}) : ${a.label}`));
       ops.push(audit(db, p, 'prepare_decision', 'dossier', r, `${a.label}${a.amountHt !== null ? ` — ${a.amountHt} € HT` : ''} ; autorité : ${a.authority}`));
       tell(followUp, 'decision', `${p.name} a préparé une décision sur ${r} : ${a.label} (à prendre par : ${a.authority})`);
@@ -243,6 +254,10 @@ async function dossierAction(db: D1Database, p: Principal, s: Snapshot, num: num
       message = `Revue programmée le ${fr(a.dueOn)} (rappel interne, aucune invitation envoyée).`;
       break;
     }
+  }
+  if (guard) {
+    const res = await guard.stmt.run();
+    if (res.meta.changes !== 1) return json({ error: guard.conflict }, 409);
   }
   await db.batch(ops);
   return json({ ok: true, message, notified: notified.map((id) => userName(s, id)) });
@@ -261,8 +276,9 @@ async function setReplacement(db: D1Database, p: Principal, s: Snapshot, userId:
   if (absence.replacementId === parsed.value.replacement) return json({ error: 'Aucun changement.' }, 409);
   const absentName = userName(s, userId)!;
   const replName = userName(s, parsed.value.replacement);
+  const changed = await db.prepare('UPDATE absences SET replacement_user_id = ? WHERE id = ? AND replacement_user_id IS ?').bind(parsed.value.replacement, absence.id, absence.replacementId).run();
+  if (changed.meta.changes !== 1) return json({ error: 'Le remplacement vient d’être modifié. Rechargez la page.' }, 409);
   const ops: D1PreparedStatement[] = [
-    db.prepare('UPDATE absences SET replacement_user_id = ? WHERE id = ?').bind(parsed.value.replacement, absence.id),
     audit(db, p, 'set_replacement', 'absence', String(absence.id), `${absentName} (${fr(absence.startsOn)} → ${fr(absence.endsOn)}) : remplaçant ${replName ?? 'retiré'}`),
   ];
   const notified: string[] = [];

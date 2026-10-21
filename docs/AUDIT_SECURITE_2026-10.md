@@ -10,6 +10,17 @@ Méthode : revue des réglages par défaut (secrets de repli, identifiants par d
 | 1 | Moyenne | Les pages et fichiers statiques étaient servis **sans aucun en-tête de sécurité** (le binding `ASSETS` n'en ajoute pas). Le cockpit pouvait être affiché dans un cadre sur un autre site (détournement de clic sur « Réaffecter », « Désigner un remplaçant »…). | Fichier `public/_headers` (appliqué par Cloudflare aux fichiers statiques, qui ne passent pas par le Worker) : `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` sur toutes les pages ; **CSP stricte** et `no-store` sur `/cabinet/`. La page d'accueil n'est pas modifiée (ses scripts en ligne restent autorisés). | Parcours navigateur « en-têtes de sécurité » et « texte piégé… sans violation » ; vérifié en ligne |
 | 2 | Faible | Requêtes inter-sites : un lien ou une image piégés pouvaient déclencher l'export CSV (écriture au journal) ou la déconnexion, car le cookie `SameSite=Lax` accompagne les navigations de premier niveau. | Refus des requêtes `/api/cockpit/*` et `/api/demo/*` dont `Sec-Fetch-Site` indique un autre site (en plus de l'exigence JSON pour les écritures). | Test API « refuse les requêtes… venant d'un autre site » |
 
+### Deuxième passe : méthodes du pack « Claude Red » (lu, non installé)
+
+Checklists appliquées : IDOR, logique métier, requêtes simultanées, sécurité et abus d'API.
+
+| # | Gravité | Constat | Correction | Preuve |
+|---|---|---|---|---|
+| 3 | Moyenne | **Logique métier** : sur un dossier clôturé, le serveur acceptait « demander un point », « programmer une revue » et « préparer une décision » (y compris une dépense de 5 000 € HT). Seule l'interface masquait ces boutons. | Le serveur n'autorise plus que la demande de vérification sur un dossier clôturé (409 sinon). | Test API « un dossier clôturé… » |
+| 4 | Faible | **Requêtes simultanées** : 10 envois identiques créaient 10 décisions ; deux réaffectations simultanées passaient toutes les deux (historique et notifications en double). | Écritures conditionnelles exécutées en premier (`… WHERE assignee_user_id IS ?`, `INSERT … WHERE NOT EXISTS`, idem priorité et remplaçant) ; la requête perdante reçoit 409. | Tests API « dix décisions… », « deux réaffectations… » |
+
+Sans anomalie : variantes de chemin (casse, zéros, `%2F..`, double barre), changement de verbe et en-tête de surcharge, clés JSON en double, champs en trop (`status: approved` ignoré), persona hors liste.
+
 ## Vérifié, sans anomalie
 
 - **Secrets** : aucun secret dans le dépôt ; `DEMO_SECRET` est un secret Cloudflare ; secrets de test générés aléatoirement à chaque lancement ; gitleaks en CI.
