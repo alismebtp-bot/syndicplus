@@ -9,7 +9,7 @@ async function open(page: Page) {
   c.guardian.onDutyOverride = true;
   await page.addInitScript(([k, v]) => localStorage.setItem(k, v), ['syndicplus-demo-building-v1', JSON.stringify(c)] as const);
   await page.goto('/demo-lab.html');
-  await page.waitForSelector('#issue-type option', { state: 'attached' });
+  await page.waitForSelector('body[data-ready="true"]');
 }
 const tab = (page: Page, id: string) => page.locator(`#${id}-tab`).click();
 const btn = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
@@ -65,4 +65,12 @@ test('panne récurrente : 3 signalements au même endroit', async ({ page }) => 
   }
   await tab(page, 'manager');
   await expect(page.locator('#manager-review')).toContainText('Éclairage des parties communes : 3 signalements en 90 jours');
+});
+
+test('double clic sur « Créer » : un seul dossier', async ({ page }) => {
+  await open(page);
+  await btn(page, 'Créer le signalement fictif').dblclick();
+  await expect(cards(page)).toHaveCount(1);
+  await page.waitForTimeout(500);
+  await expect(cards(page)).toHaveCount(1);
 });

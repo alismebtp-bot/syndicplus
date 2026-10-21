@@ -78,11 +78,18 @@
   function snapshotOf(d) {
     return { id: d.id, typeId: d.typeId, location: d.location, description: d.description, status: d.status, statusLabel: STATUS[d.status] || d.status, pathway: d.decision?.pathway || null, createdAt: d.createdAt || Date.now(), updatedAt: d.updatedAt || d.createdAt || Date.now(), deadlineHours: d.decision ? d.decision.deadlineHours : null, nextActor: nextActorLabel(d), history: d.history.map((h) => h.text), missing: d.decision?.missing || [] };
   }
+  // Seule la dernière analyse demandée est affichée (une réponse plus ancienne et plus lente est ignorée).
+  let reviewSeq = 0;
   async function refreshReview() {
+    const seq = ++reviewSeq;
+    let result;
     try {
-      review = await api('/api/procedures/review', { cases: cases.slice(0, 60).map(snapshotOf), now: demoNow() });
-    } catch { review = { blocked: [], recurrences: [], summaries: {}, error: true }; }
-    if (current === 'manager') renderManagerReview();
+      result = await api('/api/procedures/review', { cases: cases.slice(0, 60).map(snapshotOf), now: demoNow() });
+    } catch { result = { blocked: [], recurrences: [], summaries: {}, error: true }; }
+    if (seq !== reviewSeq) return;
+    review = result;
+    // Mise à jour même si l'onglet n'est pas affiché : il sera à jour à l'ouverture.
+    renderManagerReview();
   }
 
   async function api(path, body) {
@@ -108,6 +115,7 @@
     }
     const slot = byId(name).querySelector('.report-slot');
     if (slot) slot.append(byId('report-box'));
+    if (name === 'manager' && config) refreshReview();
     if (name === 'building') {
       if (config) renderBuilding();
       else byId('building-form').replaceChildren(el('p', 'Chargement de la fiche…', 'empty'));
@@ -150,7 +158,17 @@
   }
 
   // ---------- Signalement ----------
+  // Un seul signalement à la fois : un double clic ne doit jamais créer deux dossiers.
+  let submitting = false;
   byId('report-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+    submitting = true;
+    const submitButton = byId('report-form').querySelector('button[type=submit]');
+    submitButton.disabled = true;
+    try { await handleReport(e); } finally { submitting = false; submitButton.disabled = false; }
+  });
+  async function handleReport(e) {
     e.preventDefault();
     const errBox = byId('report-error');
     errBox.classList.add('hidden');
@@ -192,7 +210,7 @@
     } finally {
       submit.disabled = false;
     }
-  });
+  }
 
   function showDuplicates() {
     const box = byId('duplicate-box');
