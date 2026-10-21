@@ -114,6 +114,21 @@ Tous les pouvoirs et seuils doivent être **explicitement saisis et validés** p
 - Prestataire termine sans preuve suffisante et résident conteste : statut « résolution à confirmer », validation humaine avant clôture.
 - Incident récurrent : déclencher une suggestion d'analyse des causes et des coûts, pas automatiquement un nouveau marché.
 
+
+## Rectification — fuite importante (règle prioritaire)
+
+Une **fuite importante** génère trois informations obligatoires (si coordonnées et configuration renseignées) : **gestionnaire du syndic**, **président du conseil syndical de l'immeuble** et **gardien en service**. La notification du gardien est conditionnée à sa présence et à ses horaires ; si absent, hors service ou injoignable, activer le **relais/astreinte prédéfini** sans bloquer la procédure.
+
+Séparer **notification**, **constat**, **décision** et **intervention** :
+1. Le système signale immédiatement le risque et affiche les consignes de sécurité appropriées.
+2. Les alertes pertinentes sont déclenchées en parallèle, sans attendre une réponse du gardien.
+3. En journée, le gardien peut se déplacer pour un constat **sans danger et dans ses missions** ; il n'est pas requis pour autoriser le dépannage d'urgence.
+4. Le gestionnaire supervise et décide selon ses pouvoirs ; le président est informé, mais une notification ne vaut ni consultation formelle ni autorisation de dépense.
+5. Le prestataire d'urgence ou sous contrat est contacté dans les limites de la procédure validée ; aucune dépense n'est engagée par un moteur IA non habilité.
+6. Tous les accusés de réception, actions, blocages et retours sont historisés. Absence de réponse => escalade paramétrée.
+
+**Cas à vérifier** : fuite importante en heures ouvrées, absence gardien, nuit/week-end, gardien injoignable, danger électrique concomitant, résident ne répond pas, prestataire d'astreinte ne répond pas. La matrice fournit une conception et non une autorisation juridique ou technique.
+
 ## Références réglementaires
 - https://www.service-public.gouv.fr/particuliers/vosdroits/F2608
 - https://www.service-public.gouv.fr/particuliers/vosdroits/F2610
