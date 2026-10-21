@@ -91,7 +91,7 @@ function technicianForm(d,card){
  const actions=el('div',undefined,'tech-actions');
  const save=()=>{d.techReport=area.value.trim();d.techChecks=Object.fromEntries(Object.entries(inputs).map(([key,node])=>[key,node.checked]));if(photo.files?.length){d.photoEvidenceName=photo.files[0].name}persist();message.textContent='Constat enregistré dans ce navigateur (simulation).';};
  actions.append(control('Enregistrer le constat',save,true));
- actions.append(control('Intervention réalisée',()=>{save();if(!d.techReport||!d.techChecks?.visual){message.textContent='Ajoutez un compte rendu et confirmez le contrôle visuel avant de terminer.';return}transition(d.id,'completed','Technicien : intervention réalisée, rapport et contrôles consignés (simulation)')}));
+ actions.append(control('Marquer les travaux réalisés',()=>{save();if(!d.techReport||!d.techChecks?.visual){message.textContent='Ajoutez un compte rendu et confirmez le contrôle visuel avant de terminer.';return}transition(d.id,'completed','Technicien : intervention réalisée, rapport et contrôles consignés (simulation)')}));
  actions.append(control('Problème non résolu',()=>{save();transition(d.id,'assigned','Technicien : difficulté signalée, réévaluation nécessaire (simulation)')},true));
  panel.append(actions);card.append(panel)
 }
