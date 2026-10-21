@@ -2,164 +2,120 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%231d6ff2%22/%3E%3Crect x=%229%22 y=%227%22 width=%229%22 height=%2218%22 fill=%22white%22/%3E%3C/svg%3E">
 <title>SyndicPlus — Laboratoire démo</title>
 <style>
-:root{font-family:system-ui,-apple-system,sans-serif;color:#1a2b43;background:#f5f7fb}
-*{box-sizing:border-box}body{margin:0}header{background:white;border-bottom:1px solid #dfe5ed;padding:16px max(16px,calc((100% - 840px)/2))}
-main{max-width:840px;margin:auto;padding:20px 16px 50px}h1{font-size:1.6rem;margin:5px 0 8px}
-h2{font-size:1.15rem}.small{color:#56667c;font-size:.89rem}.warning{background:#fff4d8;padding:12px;border-radius:12px}
-.panel{background:white;border:1px solid #dde5ef;border-radius:16px;padding:20px;margin-top:16px;box-shadow:0 2px 16px #14223b08}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{flex:1}/* Onglets : une ligne de largeurs égales quel que soit leur nombre ; en 2 colonnes sur mobile (voir @media 650px) */
-.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}.tabs button{background:#e9eef5;color:#153151;padding:10px 6px}
-button{border:0;background:#195fc8;color:white;border-radius:10px;min-height:44px;padding:10px 14px;cursor:pointer;font:inherit;font-weight:600}
-button[aria-pressed=true]{background:#173b70;color:white}button.secondary{background:#e9eef5;color:#153151}
-input,textarea,select{display:block;width:100%;margin:6px 0 14px;border:1px solid #c4d1e0;border-radius:9px;padding:12px;font:inherit}
+:root{font-family:system-ui,-apple-system,sans-serif;--ink:#162e4c;--muted:#5d7189;--line:#e1e8f2;--blue:#195fc8;--navy:#173b70;--soft:#e9eef5;--warn:#fff4d8;--warn-ink:#7a4b00;--danger:#fde8e6;--danger-ink:#9b1c12;--ok:#e3f5ea;--ok-ink:#17643a;color:var(--ink)}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(#edf4fc,#f7f9fc 340px)}
+header{background:white;border-bottom:1px solid #dfe5ed;padding:16px max(16px,calc((100% - 950px)/2))}
+main{max-width:950px;margin:auto;padding:20px 16px 60px}
+h1{font-size:clamp(1.65rem,3vw,2.15rem);letter-spacing:-.035em;margin:5px 0 8px}h2{font-size:1.15rem;letter-spacing:-.02em}h3{font-size:1rem;margin:22px 0 8px}
+.small{color:var(--muted);font-size:.89rem}.warning{background:var(--warn);color:var(--warn-ink);padding:12px;border-radius:12px}
+.alert{background:var(--danger);color:var(--danger-ink);padding:12px;border-radius:12px;font-weight:600}
+.panel{background:white;border:1px solid var(--line);border-radius:18px;padding:clamp(18px,3vw,28px);margin-top:20px;box-shadow:0 10px 35px #1c395715}
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;padding:7px;background:white;border:1px solid var(--line);border-radius:15px;margin-top:18px}
+.tabs button{background:var(--soft);color:#153151;padding:10px 6px;border-radius:10px}
+button{border:0;background:var(--blue);color:white;border-radius:10px;min-height:44px;padding:10px 14px;cursor:pointer;font:inherit;font-weight:600}
+button[aria-pressed=true]{background:var(--navy);color:white}button.secondary{background:var(--soft);color:#153151}button.danger{background:#c0392b}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,textarea,select{display:block;width:100%;margin:6px 0 14px;border:1px solid #c4d1e0;border-radius:9px;padding:12px;font:inherit;background:white}
 textarea{min-height:90px}label{display:block;font-weight:600;margin-top:12px}
-.hidden{display:none}.status{background:#eaf3fd;color:#225a9a;border-radius:30px;padding:5px 10px;font-size:.85rem}
-.note{border-left:3px solid #d6e2f0;padding:5px 12px;margin:10px 0}
-a{color:#195fc8}button:focus-visible,a:focus-visible{outline:3px solid #f0a600;outline-offset:2px}
-
-.role-head{display:flex;align-items:flex-start;gap:12px}.role-icon{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:12px;background:#e9f2ff;color:#155db7;font-size:24px}.role-head p{margin:4px 0 12px;color:#61748a}
-:root{--line:#e1e8f2}body{background:linear-gradient(#edf4fc,#f7f9fc 340px);color:#162e4c}
-main{max-width:950px}.panel{border-radius:18px;box-shadow:0 10px 35px #1c395715;margin-top:20px;padding:clamp(18px,3vw,28px)}
-h1{font-size:clamp(1.65rem,3vw,2.15rem);letter-spacing:-.035em}h2{letter-spacing:-.02em}
-.tabs{padding:7px;background:white;border:1px solid var(--line);border-radius:15px}.tabs button{border-radius:10px}
-.note{border:1px solid var(--line);border-left:0;border-radius:14px;background:#fbfdff;padding:16px}
-.note strong{display:block;margin-bottom:9px}.note p{line-height:1.5}
 input:focus,select:focus,textarea:focus{outline:2px solid #8cb6f5;outline-offset:2px}
-.tech-actions{margin-top:14px;display:flex;gap:9px;flex-wrap:wrap}.tech-actions button{flex:1;min-width:160px}
-.tech-check{display:flex;align-items:center;gap:10px;margin:9px 0;font-weight:500}.tech-check input{width:20px;height:20px;margin:0;flex:none}
-.tech-summary{font-size:.88rem;color:#526781;background:#eaf2fa;border-radius:10px;padding:12px;margin:8px 0 14px}
-@media(max-width:650px){.tabs{display:grid;grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button:last-child:nth-child(odd){grid-column:1/-1}.tabs button{min-width:0}.tech-actions{flex-direction:column}.tech-actions button{width:100%}}
+a{color:var(--blue)}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #f0a600;outline-offset:2px}
+.hidden{display:none!important}
+.role-head{display:flex;align-items:flex-start;gap:12px}.role-icon{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:12px;background:#e9f2ff;color:#155db7;font-size:24px}.role-head h2{margin:0}.role-head p{margin:4px 0 4px;color:var(--muted)}
+/* Dossier */
+.note{border:1px solid var(--line);border-radius:14px;background:#fbfdff;padding:16px;margin:12px 0}
+.note>strong{display:block;margin-bottom:6px}.note p{line-height:1.5;margin:6px 0}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.status,.chip{display:inline-block;border-radius:30px;padding:5px 10px;font-size:.82rem;font-weight:600}
+.status{background:#eaf3fd;color:#225a9a}.chip{background:var(--soft);color:#33475f}.chip.p5{background:var(--danger);color:var(--danger-ink)}
+.todo{background:#eef5ff;border-radius:12px;padding:12px 14px;margin:10px 0}.todo b{display:block;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:#3d5f8f;margin-bottom:3px}
+.todo.next{background:#f3f6f9}.todo.next b{color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px}.actions>*{flex:1 1 200px}
+details{margin-top:8px}summary{cursor:pointer;color:#365a86;font-weight:600;min-height:32px;padding:4px 0}
+details ul{margin:6px 0;padding-left:20px}details li{margin:3px 0}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin-top:20px}.count{background:var(--soft);border-radius:20px;padding:2px 10px;font-size:.85rem}
+.empty{color:var(--muted);font-size:.9rem;padding:8px 0}
+.inline{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}.inline>label{flex:1 1 180px;margin-top:0}.inline input{margin-bottom:0}
+/* Technicien */
+.tech-summary{font-size:.92rem;background:#f1f6fb;border-radius:12px;padding:14px;margin:10px 0}
+.tech-check,.check{display:flex;align-items:center;gap:10px;margin:9px 0;font-weight:500}.tech-check input,.check input{width:20px;height:20px;margin:0;flex:none}
+/* Fiche immeuble */
+fieldset{border:1px solid var(--line);border-radius:14px;padding:6px 16px 12px;margin:14px 0}legend{font-weight:700;padding:0 6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.contract{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+.msg-ok{background:var(--ok);color:var(--ok-ink);padding:10px 12px;border-radius:10px}
+@media(max-width:650px){.tabs{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button:last-child:nth-child(odd){grid-column:1/-1}.tabs button{min-width:0}.actions{flex-direction:column}.actions>*{flex:0 0 auto}.grid2{grid-template-columns:1fr}}
 </style></head>
 <body>
 <header><strong>🏢 SyndicPlus</strong> <span class="small">/ Laboratoire fonctionnel</span></header>
 <main>
 <h1>Tester une intervention de bout en bout</h1>
-<p class="warning"><strong>Démo isolée :</strong> uniquement des données fictives, enregistrées dans ce navigateur. Aucun e-mail, SMS ou ordre de travaux réel. Aucun compte à créer. Les données ne sont pas partagées entre appareils.</p>
-<div class="row tabs" role="group" aria-label="Choisir une interface">
+<p class="warning"><strong>Démo isolée :</strong> uniquement des données fictives, enregistrées dans ce navigateur. Aucun e-mail, SMS ou ordre de travaux réel. Aucun compte à créer. Les données ne sont pas partagées entre appareils. Le circuit est choisi par le moteur de parcours P1–P6 selon la fiche de l’immeuble.</p>
+
+<div class="tabs" role="group" aria-label="Choisir une interface">
 <button id="resident-tab" aria-pressed="true" type="button">Résident</button>
+<button id="guardian-tab" aria-pressed="false" type="button">Gardien</button>
 <button id="manager-tab" aria-pressed="false" type="button">Gestionnaire</button>
-<button id="provider-tab" aria-pressed="false" type="button">Prestataire</button><button id="guardian-tab" aria-pressed="false" type="button">Gardien</button><button id="council-tab" aria-pressed="false" type="button">Président CS</button>
+<button id="provider-tab" aria-pressed="false" type="button">Prestataire</button>
+<button id="council-tab" aria-pressed="false" type="button">Président CS</button>
+<button id="building-tab" aria-pressed="false" type="button">Immeuble</button>
 </div>
-<section id="resident" class="panel">
-<div class="role-head"><div class="role-icon">⌂</div><div><h2>Espace résident</h2><p>Signaler et suivre, en toute simplicité.</p></div></div><h2>Signaler un problème</h2>
+
+<!-- Formulaire de signalement : un seul formulaire, déplacé dans l'interface active (tout acteur autorisé peut signaler). -->
+<div id="report-box">
 <form id="report-form">
 <label for="issue-type">Nature de la demande</label>
-<select id="issue-type"><option>Éclairage</option><option>Fuite d’eau</option><option>Chauffage</option><option>Autre</option></select>
+<select id="issue-type" required></select>
 <label for="issue-location">Emplacement</label>
 <input id="issue-location" required maxlength="100" value="Couloir du 3e étage">
 <label for="issue-description">Description</label>
 <textarea id="issue-description" required maxlength="1000">Le luminaire ne fonctionne plus depuis hier.</textarea>
+<label for="issue-danger">Danger immédiat ?</label>
+<select id="issue-danger"><option>Non</option><option>Oui</option><option>Je ne sais pas</option></select>
+<p id="report-error" class="alert hidden" role="alert"></p>
 <button type="submit">Créer le signalement fictif</button>
 </form>
-<h2>Mes demandes</h2><div id="resident-cases"></div>
+</div>
+
+<section id="resident" class="panel">
+<div class="role-head"><div class="role-icon">⌂</div><div><h2>Espace résident</h2><p>Signaler et suivre, en toute simplicité.</p></div></div>
+<h3>Signaler un problème</h3><div class="report-slot" data-open="true"></div>
+<h3>Mes demandes</h3><div id="resident-cases"></div>
 </section>
+
+<section id="guardian" class="panel hidden">
+<div class="role-head"><div class="role-icon">⌁</div><div><h2>Gardien</h2><p id="guardian-sub">Constats sans risque et petit entretien prévu dans vos missions.</p></div></div>
+<details class="report-details"><summary>Signaler un problème</summary><div class="report-slot"></div></details>
+<div id="guardian-cases"></div>
+</section>
+
 <section id="manager" class="panel hidden">
-<div class="role-head"><div class="role-icon">▤</div><div><h2>Gestionnaire</h2><p>Décisions à prendre et suivi des dossiers.</p></div></div><h2>Dossiers à traiter</h2><p class="small">Validez une affectation fictive. Aucun prestataire n'est contacté.</p>
-<div id="manager-cases"></div></section>
+<div class="role-head"><div class="role-icon">▤</div><div><h2>Votre journée</h2><p>Uniquement ce qui demande votre intervention. Le reste suit son circuit.</p></div></div>
+<details class="report-details"><summary>Signaler un problème</summary><div class="report-slot"></div></details>
+<div id="manager-cases"></div>
+</section>
+
 <section id="provider" class="panel hidden">
-<div class="role-head"><div class="role-icon">⚒</div><div><h2>Technicien prestataire</h2><p>Prise en charge, contrôles effectués et validation des travaux.</p></div></div><h2>Missions affectées</h2><p class="small">Le prestataire de démonstration confirme l'avancement de sa mission.</p>
-<div id="provider-cases"></div></section>
-<section id="guardian" class="panel hidden"><div class="role-head"><div class="role-icon">⌁</div><div><h2>Gardien</h2><p>Constats terrain et petites réparations autorisées.</p></div></div><h2>Interventions du gardien</h2><p class="small">Vérifications et petites réparations autorisées uniquement. Aucun ordre réel n'est envoyé.</p><div id="guardian-cases"></div></section>
-<section id="council" class="panel hidden"><div class="role-head"><div class="role-icon">◎</div><div><h2>Président du conseil syndical</h2><p>Contrôle de bonne exécution et réserves selon les missions confiées.</p></div></div><div id="council-cases"></div></section><section class="panel"><div class="row"><button class="secondary" id="reset" type="button">Réinitialiser les dossiers fictifs</button><a href="/" style="text-align:right">Revenir à la maquette</a></div></section>
+<div class="role-head"><div class="role-icon">⚒</div><div><h2>Technicien prestataire</h2><p>Vos missions, vos contrôles, la validation des travaux.</p></div></div>
+<details class="report-details"><summary>Signaler un problème</summary><div class="report-slot"></div></details>
+<div id="provider-cases"></div>
+</section>
+
+<section id="council" class="panel hidden">
+<div class="role-head"><div class="role-icon">◎</div><div><h2>Président du conseil syndical</h2><p>Constats, consultations, devis, avis, vérifications et réserves selon vos délégations.</p></div></div>
+<details class="report-details"><summary>Signaler un problème</summary><div class="report-slot"></div></details>
+<div id="council-cases"></div>
+</section>
+
+<section id="building" class="panel hidden">
+<div class="role-head"><div class="role-icon">⚙</div><div><h2>Fiche de l’immeuble</h2><p>Qui intervient, quand, et avec quelles autorisations. Le moteur s’en sert pour choisir le parcours.</p></div></div>
+<form id="building-form"></form>
+</section>
+
+<section class="panel"><div class="actions"><button class="secondary" id="reset" type="button">Réinitialiser les dossiers fictifs</button><a href="/" style="align-self:center;text-align:right">Revenir à la maquette</a></div></section>
 </main>
 <script src="/demo-analysis.js"></script>
-<script>
-const KEY='syndicplus-demo-lab-v1';
-const statusLabels={new:'À qualifier',assigned:'Prestataire affecté',progress:'En intervention',completed:'Intervention réalisée',closed:'Clôturé',verification:'À vérifier sur place',reserved:'Réserves émises',verified:'Exécution confirmée',guardian:'À vérifier par le gardien',guardian_active:'Pris en charge par le gardien',guardian_done:'Réalisé par le gardien',guardian_blocked:'Prestataire nécessaire',guardian_danger:'Danger signalé'};
-const byId=id=>document.getElementById(id);
-const read=()=>{try{const x=JSON.parse(localStorage.getItem(KEY));return Array.isArray(x)?x:[]}catch{return []}};
-let cases=read();
-function persist(){localStorage.setItem(KEY,JSON.stringify(cases))}
-function el(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e}
-function control(text,callback,secondary=false){const e=el('button',text,secondary?'secondary':'');e.type='button';e.addEventListener('click',callback);return e}
-function role(name){for(const x of ['resident','manager','provider','guardian','council']){byId(x).classList.toggle('hidden',x!==name);byId(x+'-tab').setAttribute('aria-pressed',String(x===name))}}
-for(const name of ['resident','manager','provider','guardian','council'])byId(name+'-tab').addEventListener('click',()=>role(name));
-function transition(id,state,message){const d=cases.find(c=>c.id===id);if(!d)return;d.status=state;d.history.push({time:new Date().toLocaleString('fr-FR'),text:message});persist();render()}
-function technicianForm(d,card){
- const panel=el('div',undefined,'tech-summary');
- panel.append(el('strong','Vérification et validation de l’intervention'));
- panel.append(el('p','Référence : '+d.id+' · '+d.location));
- const note=el('label','Compte rendu des travaux et vérifications');const area=el('textarea');area.setAttribute('aria-label','Compte rendu du technicien');area.maxLength=1000;area.placeholder='Travaux réalisés, vérifications effectuées, résultat et éventuelles réserves…';area.value=d.techReport||'';note.append(area);panel.append(note);
- const checkLabel=el('label','Contrôles réellement effectués');
- panel.append(checkLabel);
- const checks=[['visual','Inspection visuelle effectuée'],['safe','Zone vérifiée sans danger constaté'],['functional','Essai de fonctionnement effectué']];
- const inputs={};
- for(const [key,text] of checks){const l=el('label',undefined,'tech-check');const box=el('input');box.type='checkbox';box.checked=Boolean(d.techChecks?.[key]);l.append(box,el('span',text));panel.append(l);inputs[key]=box}
- const photoLabel=el('label','Photo de vérification (facultative, nom du fichier seulement)');const photo=el('input');photo.type='file';photo.accept='image/*';photo.setAttribute('aria-label','Photo justificative');photoLabel.append(photo);panel.append(photoLabel);
- const message=el('p','','small');panel.append(message);
- const actions=el('div',undefined,'tech-actions');
- const save=()=>{d.techReport=area.value.trim();d.techChecks=Object.fromEntries(Object.entries(inputs).map(([key,node])=>[key,node.checked]));if(photo.files?.length){d.photoEvidenceName=photo.files[0].name}persist();message.textContent='Vérifications enregistrées dans ce navigateur (simulation).';};
- actions.append(control('Enregistrer les vérifications',save,true));
- actions.append(control('Marquer les travaux réalisés',()=>{save();if(!d.techReport||!d.techChecks?.visual){message.textContent='Ajoutez un compte rendu et confirmez le contrôle visuel avant de terminer.';return}(()=>{d.requiredVerifier=d.type==='Éclairage'?'guardian':'council';transition(d.id,'verification','Technicien : travaux déclarés réalisés. Vérification terrain attendue par '+(d.requiredVerifier==='guardian'?'le gardien':'le président du conseil syndical')+' (simulation)')})()}));
- actions.append(control('Problème non résolu',()=>{save();transition(d.id,'assigned','Technicien : difficulté signalée, réévaluation nécessaire (simulation)')},true));
- panel.append(actions);card.append(panel)
-}
-function decideVerification(d,actor,decision){
- const permitted=d.status==='verification'||d.status==='reserved';
- if(!permitted)return;
- d.verifications=d.verifications||{};
- d.verifications[actor]=decision;
- d.history.push({time:new Date().toLocaleString('fr-FR'),text:(actor==='guardian'?'Gardien':'Président CS')+' : '+(decision==='ok'?'bonne exécution apparente confirmée':decision==='reserve'?'réserves signalées':'vérification impossible')+' (simulation)'});
- d.status=decision==='reserve'?'reserved':(d.verifications[d.requiredVerifier]==='ok'?'verified':'verification');
- persist();render();
-}
-function sendBackForRework(d){
- if(d.status!=='reserved')return;
- // Reprise : les vérifications et contrôles précédents ne valent plus, une nouvelle vérification terrain sera exigée.
- d.verifications={};d.techChecks={};d.rework=(d.rework||0)+1;
- transition(d.id,'assigned','Gestionnaire : réserves transmises au prestataire, reprise n°'+d.rework+' demandée (simulation)');
-}
-function verificationActions(d,actor,card){
- if(!['verification','reserved'].includes(d.status)||d.requiredVerifier!==actor)return;
- card.append(el('p','Vérification sur place — confirmation visuelle, pas réception juridique des travaux.','small'));
- card.append(control('Travaux conformes',()=>decideVerification(d,actor,'ok')));
- card.append(control('Émettre des réserves',()=>decideVerification(d,actor,'reserve'),true));
- card.append(control('Impossible de vérifier',()=>decideVerification(d,actor,'unavailable'),true));
-}
-function details(d){const wrap=el('article',undefined,'note');wrap.append(el('strong',d.type+' · '+d.location),el('p',d.description),el('span',statusLabels[d.status],'status'));const hist=el('ul');for(const h of d.history){const li=el('li',h.time+' — '+h.text);hist.append(li)}wrap.append(hist);if(window.syndicDemoAnalysis&&d.status==='new')window.syndicDemoAnalysis.display(wrap,d);return wrap}
-function render(){
-for(const [name,target] of [['resident','resident-cases'],['manager','manager-cases'],['provider','provider-cases'],['guardian','guardian-cases'],['council','council-cases']]){
-const host=byId(target);host.replaceChildren();
-const allowed=cases.filter(c=>name==='provider'?['assigned','progress','completed','closed','verification','reserved','verified'].includes(c.status):name==='guardian'?['guardian','guardian_active','guardian_done','guardian_blocked','guardian_danger'].includes(c.status)||(c.requiredVerifier==='guardian'&&['verification','reserved','verified'].includes(c.status)):name==='council'?c.requiredVerifier==='council'&&['verification','reserved','verified','closed'].includes(c.status):true);
-if(!allowed.length){host.append(el('p','Aucun dossier pour le moment.','small'));continue}
-for(const d of allowed){const card=details(d);
-if(name==='manager'){
- if(d.status==='new'&&d.type==='Éclairage'&&!(d.analysis?.reasons?.length))card.append(control('Demander une vérification au gardien',()=>transition(d.id,'guardian','Demande fictive transmise au gardien')));
- if(d.status==='guardian_blocked')card.append(control('Affecter au prestataire après contrôle',()=>transition(d.id,'assigned','Gestionnaire : transfert au prestataire après échec du gardien')));
- if(d.status==='guardian_done')card.append(control('Valider la clôture',()=>transition(d.id,'closed','Clôture validée après intervention du gardien')));
- if(d.status==='guardian_danger')card.append(el('p','DANGER : contacter les services appropriés et appliquer les consignes de sécurité. Aucune affectation automatique.','warning'));
- if(d.status==='new')card.append(control('Affecter au prestataire (simulation)',()=>transition(d.id,'assigned','Mission fictive affectée au prestataire')));
- if(d.status==='verified')card.append(control('Clôturer administrativement',()=>transition(d.id,'closed','Gestionnaire : clôture administrative après confirmation terrain')));
- if(d.status==='reserved'){card.append(el('p','Réserves émises : renvoyez le dossier au prestataire pour reprise, ou attendez une nouvelle vérification sur place.','warning'));card.append(control('Renvoyer au prestataire pour reprise',()=>sendBackForRework(d)))}
- if(d.status==='verification')card.append(el('p','En attente de la confirmation terrain ; aucune clôture possible.','small'));
-}
-if(name==='guardian'){
- verificationActions(d,'guardian',card);
- if(d.status==='guardian')card.append(control('Je prends en charge',()=>transition(d.id,'guardian_active','Gardien : prise en charge du constat')));
- if(d.status==='guardian_active'){
-   card.append(control('Petite réparation effectuée',()=>transition(d.id,'guardian_done','Gardien : tâche autorisée déclarée effectuée, validation à suivre')));
-   card.append(control('Prestataire nécessaire',()=>transition(d.id,'guardian_blocked','Gardien : intervention extérieure nécessaire'),true));
-   card.append(control('Danger / urgence',()=>transition(d.id,'guardian_danger','Gardien : danger signalé, escalade immédiate à confirmer'),true));
- }
-}
-if(name==='council')verificationActions(d,'council',card);
-if(name==='provider'){
- if(d.status==='assigned')card.append(control('Confirmer le début',()=>transition(d.id,'progress','Le prestataire a commencé l’intervention')));
- if(d.status==='progress')technicianForm(d,card);
- if(d.status==='reserved')card.append(el('p','Réserves émises lors de la vérification : en attente de la décision du gestionnaire.','small'));
-}
-host.append(card)}
-}}
-byId('report-form').addEventListener('submit',e=>{
-e.preventDefault();
-const type=byId('issue-type').value,location=byId('issue-location').value.trim(),description=byId('issue-description').value.trim();
-if(!location||!description)return;
-const id='DEMO-'+Date.now();
-cases.unshift({id,type,location,description,analysis:window.syndicDemoAnalysis.evaluate(type,location,description),status:'new',history:[{time:new Date().toLocaleString('fr-FR'),text:'Signalement fictif enregistré'}]});
-persist();render();byId('report-form').reset();
-});
-byId('reset').addEventListener('click',()=>{if(confirm('Effacer uniquement les dossiers fictifs de cette démonstration ?')){cases=[];persist();render()}});
-render();
-</script></body></html>
+<script src="/lab/app.js"></script>
+</body></html>

@@ -62,6 +62,20 @@ describe('POST /api/procedures/route', () => {
   });
 });
 
+describe('POST /api/procedures/validate-config', () => {
+  it('renvoie la fiche normalisée et les informations manquantes', async () => {
+    const res = await post('/api/procedures/validate-config', { config: { ...structuredClone(DEMO_BUILDING), councilPresident: null } });
+    expect(res.status).toBe(200);
+    const r = (await res.json()) as { ok: boolean; warnings: string[] };
+    expect(r.ok).toBe(true);
+    expect(r.warnings.join(' ')).toMatch(/Président/);
+  });
+  it('refuse une fiche invalide', async () => {
+    const res = await post('/api/procedures/validate-config', { config: { name: 'X', guardian: { name: 'G', schedule: [{ days: [1], start: '25:00', end: '26:00' }] } } });
+    expect(res.status).toBe(400);
+  });
+});
+
 describe('POST /api/procedures/after-guardian', () => {
   it('dans le plafond vérifié : affectation automatique', async () => {
     const { decision } = (await (await post('/api/procedures/after-guardian', { typeId: 'eclairage_commun', estimateHT: 120 })).json()) as { decision: { next: string; autoAssign: boolean } };
