@@ -162,3 +162,20 @@ test('mobile : navigation basse et menu « Plus »', async ({ page }, info) => {
   const box = await nav.getByRole('link', { name: /Accueil/ }).boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
 });
+
+test('un texte piégé enregistré est affiché comme du texte, sans violation de la politique de sécurité', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'Écriture testée une seule fois');
+  const violations: string[] = [];
+  page.on('console', (m) => { if (/Content Security Policy|Refused to/.test(m.text())) violations.push(m.text()); });
+  page.on('dialog', (d) => { violations.push('dialog ' + d.message()); void d.dismiss(); });
+  await loginAs(page, 'dir_lea');
+  await nav(page, '#/incidents/D-9002');
+  await page.locator('[data-do="request_update"]').click();
+  await page.locator('dialog textarea[name=message]').fill('<img src=x onerror=alert(1)>');
+  await page.locator('#dlg-ok').click();
+  await expect(page.locator('#toast')).toBeVisible();
+  await ready(page);
+  await expect(page.locator('.hist li').first()).toContainText('<img src=x onerror=alert(1)>');
+  expect(await page.locator('.hist img').count()).toBe(0);
+  expect(violations).toEqual([]);
+});

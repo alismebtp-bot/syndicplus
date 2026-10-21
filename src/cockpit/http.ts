@@ -45,6 +45,11 @@ export async function handleCockpit(request: Request, env: Env, path: string, js
   const secure = new URL(request.url).protocol === 'https:';
   const method = request.method;
 
+  // Défense en profondeur contre les requêtes inter-sites (lien piégé, image, formulaire) :
+  // les navigateurs récents indiquent l'origine de la requête ; seules « same-origin » et « none » (saisie directe) passent.
+  const site = request.headers.get('sec-fetch-site');
+  if (site && site !== 'same-origin' && site !== 'none') return json({ error: 'Requête inter-sites refusée.' }, 403);
+
   // ---------------- Identité de démonstration ----------------
   if (path.startsWith('/api/demo/')) {
     if (!demoIdentityEnabled(env)) return json({ error: 'Démonstration indisponible sur cet environnement.' }, 404);
