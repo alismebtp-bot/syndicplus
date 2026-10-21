@@ -85,7 +85,10 @@
     }
     const slot = byId(name).querySelector('.report-slot');
     if (slot) slot.append(byId('report-box'));
-    if (name === 'building') renderBuilding();
+    if (name === 'building') {
+      if (config) renderBuilding();
+      else byId('building-form').replaceChildren(el('p', 'Chargement de la fiche…', 'empty'));
+    }
   }
   for (const r of ROLES) byId(r + '-tab').addEventListener('click', () => role(r));
 
@@ -496,7 +499,8 @@
     for (const v of ['10', '20', '5.5']) { const o = el('option', v + ' %'); o.value = v; f.vat.append(o); }
     const g = el('div', undefined, 'grid2');
     g.append(field('Entreprise', f.company), field('Montant (€ HT)', f.amount), field('TVA', f.vat), field('Délai (jours)', f.delay), field('Périmètre', f.scope), field('Garanties', f.warranty));
-    box.append(g, button('Enregistrer le devis reçu', () => addQuote(d, f, msg), 'secondary'));
+    const saveQuote = button('Enregistrer le devis reçu', async () => { saveQuote.disabled = true; try { await addQuote(d, f, msg); } finally { saveQuote.disabled = false; } }, 'secondary');
+    box.append(g, saveQuote);
     comparisonBlock(box, d);
     // Avis
     if (d.quotes?.length) {
@@ -593,9 +597,16 @@
     }
   }
 
+  // Les sections dépliées par l'utilisateur restent ouvertes quand l'écran se redessine.
+  function detailsKey(dt) {
+    const owner = dt.closest('[data-case]')?.dataset.case || dt.closest('section')?.id || '';
+    return owner + '|' + (dt.querySelector('summary')?.textContent || '').replace(/\s*\(\d+\)/g, '');
+  }
   function render() {
     const views = { resident: residentView, guardian: guardianView, manager: managerView, provider: providerView, council: councilView };
+    const open = new Set([...document.querySelectorAll('[id$="-cases"] details[open]')].map(detailsKey));
     for (const [name, view] of Object.entries(views)) { const host = byId(name + '-cases'); host.replaceChildren(); view(host); }
+    for (const dt of document.querySelectorAll('[id$="-cases"] details')) if (open.has(detailsKey(dt))) dt.open = true;
   }
 
   // ---------- Fiche de l'immeuble ----------
@@ -708,8 +719,11 @@
     select.append(other);
     select.value = 'eclairage_commun';
     await loadPerms();
-    role('resident');
+    // Conserver l'onglet choisi pendant le chargement (réseau lent).
+    role(current);
     render();
+    document.body.dataset.ready = 'true';
   }
+  role('resident');
   init();
 })();

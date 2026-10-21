@@ -15,7 +15,7 @@ async function open(page: Page, mutate?: (c: Config) => void) {
   mutate?.(c);
   await page.addInitScript(([k, v]) => localStorage.setItem(k, v), [CONFIG_KEY, JSON.stringify(c)] as const);
   await page.goto('/demo-lab.html');
-  await page.waitForSelector('#issue-type option', { state: 'attached' });
+  await page.waitForSelector('body[data-ready="true"]');
 }
 
 const tab = (page: Page, id: string) => page.locator(`#${id}-tab`).click();

@@ -10,7 +10,7 @@ async function open(page: Page, mutate?: (c: Config) => void) {
   mutate?.(c);
   await page.addInitScript(([k, v]) => localStorage.setItem(k, v), ['syndicplus-demo-building-v1', JSON.stringify(c)] as const);
   await page.goto('/demo-lab.html');
-  await page.waitForSelector('#issue-type option', { state: 'attached' });
+  await page.waitForSelector('body[data-ready="true"]');
 }
 const tab = (page: Page, id: string) => page.locator(`#${id}-tab`).click();
 const btn = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
@@ -33,7 +33,8 @@ async function addQuote(page: Page, company: string, amount: string, delay: stri
   await page.getByLabel('Périmètre des travaux').fill('Reprise de l’étanchéité');
   await page.getByLabel('Garanties').fill('Décennale');
   await btn(page, 'Enregistrer le devis reçu').click();
-  await expect(council(page)).toContainText(`${company}`);
+  // Attendre la confirmation réelle (historique), pas un texte déjà présent ailleurs
+  await expect(council(page)).toContainText(`Devis reçu et enregistré par le président : ${company}`);
 }
 
 test('le président sollicite, compare, donne un avis ; le gestionnaire retient et commande', async ({ page }) => {
@@ -97,7 +98,8 @@ test('constat du président et demande de vérification au gardien', async ({ pa
   await council(page).locator('summary', { hasText: 'Constat ou demande de vérification' }).first().click();
   await page.getByLabel('Votre constat').fill('Portes bloquées, affichage éteint');
   await btn(page, 'Enregistrer le constat').click();
-  await council(page).locator('summary', { hasText: 'Constat ou demande de vérification' }).first().click();
+  await expect(council(page)).toContainText('Constat du président du CS : Portes bloquées');
+  // La section reste ouverte après l'enregistrement
   await btn(page, 'Demander une vérification au gardien').click();
   await tab(page, 'guardian');
   await expect(page.locator('#guardian-cases')).toContainText('Le président du conseil syndical demande une vérification');
