@@ -7,6 +7,15 @@ describe('circuits suggérés, jamais commandes automatiques', () => {
     expect(proposeRoute({...base,guardianAvailable:false}).firstActor).toBe('manager');
     expect(proposeRoute({...base,guardianScopeIncludesCheck:false}).firstActor).toBe('manager');
   });
+  it('permet au gardien de terminer un petit entretien seulement si expressément autorisé', () => {
+    const repair = proposeRoute({...base, guardianCanRepair:true});
+    expect(repair.firstActor).toBe('guardian');
+    expect(repair.guardianCanCompleteLocally).toBe(true);
+    expect(repair.onGuardianCannotResolve).toBe('contractor_after_manager_approval');
+    expect(proposeRoute({...base, guardianCanRepair:false}).guardianCanCompleteLocally).toBe(false);
+    expect(proposeRoute({...base, guardianAvailable:false, guardianCanRepair:true}).guardianCanCompleteLocally).toBe(false);
+    expect(proposeRoute({...base, danger:true, guardianCanRepair:true}).firstActor).toBe('emergency');
+  });
   it('respecte le mainteneur contractuel du chauffage', () => {
     const route=proposeRoute({...base,kind:'collective_heating'});
     expect(route.firstActor).toBe('contractor');
