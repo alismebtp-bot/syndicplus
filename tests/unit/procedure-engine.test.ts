@@ -28,6 +28,15 @@ describe('circuits suggérés, jamais commandes automatiques', () => {
     expect(route.notify).toContain('council_priority');
     expect(route.requiresHumanReview).toBe(true);
   });
+  it('alerte simultanément les trois responsables en présence du gardien, sans retarder le secours', () => {
+    const route=proposeRoute({...base,kind:'major_leak',guardianOnDuty:true});
+    expect(route.firstActor).toBe('emergency');
+    expect(route.urgentNotifications).toEqual(['manager','council_president','guardian']);
+  });
+  it('utilise le relais hors horaires ou en absence de gardien', () => {
+    expect(proposeRoute({...base,kind:'major_leak',guardianOnDuty:false}).urgentNotifications).toEqual(['manager','council_president']);
+    expect(proposeRoute({...base,kind:'major_leak',guardianAvailable:false}).urgentNotifications).toEqual(['manager','council_president']);
+  });
   it('priorise la sécurité même sur un incident normalement banal', () => {
     expect(proposeRoute({...base,danger:true}).firstActor).toBe('emergency');
   });
