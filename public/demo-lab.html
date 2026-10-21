@@ -9,7 +9,8 @@
 main{max-width:840px;margin:auto;padding:20px 16px 50px}h1{font-size:1.6rem;margin:5px 0 8px}
 h2{font-size:1.15rem}.small{color:#56667c;font-size:.89rem}.warning{background:#fff4d8;padding:12px;border-radius:12px}
 .panel{background:white;border:1px solid #dde5ef;border-radius:16px;padding:20px;margin-top:16px;box-shadow:0 2px 16px #14223b08}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{flex:1}.tabs button{background:#e9eef5;color:#153151}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{flex:1}/* Onglets : une ligne de largeurs égales quel que soit leur nombre ; en 2 colonnes sur mobile (voir @media 650px) */
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}.tabs button{background:#e9eef5;color:#153151;padding:10px 6px}
 button{border:0;background:#195fc8;color:white;border-radius:10px;min-height:44px;padding:10px 14px;cursor:pointer;font:inherit;font-weight:600}
 button[aria-pressed=true]{background:#173b70;color:white}button.secondary{background:#e9eef5;color:#153151}
 input,textarea,select{display:block;width:100%;margin:6px 0 14px;border:1px solid #c4d1e0;border-radius:9px;padding:12px;font:inherit}
@@ -29,7 +30,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #8cb6f5;outline-offset
 .tech-actions{margin-top:14px;display:flex;gap:9px;flex-wrap:wrap}.tech-actions button{flex:1;min-width:160px}
 .tech-check{display:flex;align-items:center;gap:10px;margin:9px 0;font-weight:500}.tech-check input{width:20px;height:20px;margin:0;flex:none}
 .tech-summary{font-size:.88rem;color:#526781;background:#eaf2fa;border-radius:10px;padding:12px;margin:8px 0 14px}
-@media(max-width:650px){.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{min-width:0}.tech-actions{flex-direction:column}.tech-actions button{width:100%}}
+@media(max-width:650px){.tabs{display:grid;grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button:last-child:nth-child(odd){grid-column:1/-1}.tabs button{min-width:0}.tech-actions{flex-direction:column}.tech-actions button{width:100%}}
 </style></head>
 <body>
 <header><strong>🏢 SyndicPlus</strong> <span class="small">/ Laboratoire fonctionnel</span></header>
@@ -104,6 +105,12 @@ function decideVerification(d,actor,decision){
  d.status=decision==='reserve'?'reserved':(d.verifications[d.requiredVerifier]==='ok'?'verified':'verification');
  persist();render();
 }
+function sendBackForRework(d){
+ if(d.status!=='reserved')return;
+ // Reprise : les vérifications et contrôles précédents ne valent plus, une nouvelle vérification terrain sera exigée.
+ d.verifications={};d.techChecks={};d.rework=(d.rework||0)+1;
+ transition(d.id,'assigned','Gestionnaire : réserves transmises au prestataire, reprise n°'+d.rework+' demandée (simulation)');
+}
 function verificationActions(d,actor,card){
  if(!['verification','reserved'].includes(d.status)||d.requiredVerifier!==actor)return;
  card.append(el('p','Vérification sur place — confirmation visuelle, pas réception juridique des travaux.','small'));
@@ -125,7 +132,7 @@ if(name==='manager'){
  if(d.status==='guardian_danger')card.append(el('p','DANGER : contacter les services appropriés et appliquer les consignes de sécurité. Aucune affectation automatique.','warning'));
  if(d.status==='new')card.append(control('Affecter au prestataire (simulation)',()=>transition(d.id,'assigned','Mission fictive affectée au prestataire')));
  if(d.status==='verified')card.append(control('Clôturer administrativement',()=>transition(d.id,'closed','Gestionnaire : clôture administrative après confirmation terrain')));
- if(d.status==='reserved')card.append(el('p','Réserves à traiter : retour vers le prestataire ou nouvelle vérification nécessaire.','warning'));
+ if(d.status==='reserved'){card.append(el('p','Réserves émises : renvoyez le dossier au prestataire pour reprise, ou attendez une nouvelle vérification sur place.','warning'));card.append(control('Renvoyer au prestataire pour reprise',()=>sendBackForRework(d)))}
  if(d.status==='verification')card.append(el('p','En attente de la confirmation terrain ; aucune clôture possible.','small'));
 }
 if(name==='guardian'){
@@ -141,6 +148,7 @@ if(name==='council')verificationActions(d,'council',card);
 if(name==='provider'){
  if(d.status==='assigned')card.append(control('Confirmer le début',()=>transition(d.id,'progress','Le prestataire a commencé l’intervention')));
  if(d.status==='progress')technicianForm(d,card);
+ if(d.status==='reserved')card.append(el('p','Réserves émises lors de la vérification : en attente de la décision du gestionnaire.','small'));
 }
 host.append(card)}
 }}
