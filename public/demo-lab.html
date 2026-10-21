@@ -126,11 +126,12 @@ const allowed=cases.filter(c=>name==='provider'?['assigned','progress','complete
 if(!allowed.length){host.append(el('p','Aucun dossier pour le moment.','small'));continue}
 for(const d of allowed){const card=details(d);
 if(name==='manager'){
- if(d.status==='new'&&d.type==='Éclairage'&&!(d.analysis?.reasons?.length))card.append(control('Demander une vérification au gardien',()=>transition(d.id,'guardian','Demande fictive transmise au gardien')));
- if(d.status==='guardian_blocked')card.append(control('Affecter au prestataire après contrôle',()=>transition(d.id,'assigned','Gestionnaire : transfert au prestataire après échec du gardien')));
- if(d.status==='guardian_done')card.append(control('Valider la clôture',()=>transition(d.id,'closed','Clôture validée après intervention du gardien')));
+ 
+ if(d.status==='guardian_blocked')card.append(control('Autoriser l’intervention du prestataire',()=>transition(d.id,'assigned','Gestionnaire : accord fictif pour intervention non préautorisée')));
+ if(d.status==='guardian_done')card.append(el('p','Réparation effectuée par le gardien : dossier résolu sans intervention du gestionnaire (simulation).','small'));
+
  if(d.status==='guardian_danger')card.append(el('p','DANGER : contacter les services appropriés et appliquer les consignes de sécurité. Aucune affectation automatique.','warning'));
- if(d.status==='new')card.append(control('Affecter au prestataire (simulation)',()=>transition(d.id,'assigned','Mission fictive affectée au prestataire')));
+ if(d.status==='new'&&d.type!=='Éclairage')card.append(control('Affecter au prestataire (simulation)',()=>transition(d.id,'assigned','Mission fictive affectée au prestataire')));
  if(d.status==='verified')card.append(control('Clôturer administrativement',()=>transition(d.id,'closed','Gestionnaire : clôture administrative après confirmation terrain')));
  if(d.status==='reserved'){card.append(el('p','Réserves émises : renvoyez le dossier au prestataire pour reprise, ou attendez une nouvelle vérification sur place.','warning'));card.append(control('Renvoyer au prestataire pour reprise',()=>sendBackForRework(d)))}
  if(d.status==='verification')card.append(el('p','En attente de la confirmation terrain ; aucune clôture possible.','small'));
@@ -139,8 +140,12 @@ if(name==='guardian'){
  verificationActions(d,'guardian',card);
  if(d.status==='guardian')card.append(control('Je prends en charge',()=>transition(d.id,'guardian_active','Gardien : prise en charge du constat')));
  if(d.status==='guardian_active'){
-   card.append(control('Petite réparation effectuée',()=>transition(d.id,'guardian_done','Gardien : tâche autorisée déclarée effectuée, validation à suivre')));
-   card.append(control('Prestataire nécessaire',()=>transition(d.id,'guardian_blocked','Gardien : intervention extérieure nécessaire'),true));
+   card.append(control('Petite réparation effectuée',()=>{if(d.type==='Éclairage'){transition(d.id,'closed','Gardien : petite réparation déclarée effectuée, dossier clôturé selon procédure fictive');}else transition(d.id,'guardian_done','Gardien : petite réparation effectuée, confirmation à déterminer') }));
+   card.append(control('Prestataire nécessaire',()=>{
+   const auto=d.type==='Éclairage'&&!d.analysis?.reasons?.length;
+   if(auto){d.requiredVerifier='guardian';transition(d.id,'assigned','Gardien : prestataire nécessaire ; transmission automatique fictive selon procédure préautorisée');}
+   else transition(d.id,'guardian_blocked','Gardien : prestataire nécessaire ; validation gestionnaire demandée');
+ },true));
    card.append(control('Danger / urgence',()=>transition(d.id,'guardian_danger','Gardien : danger signalé, escalade immédiate à confirmer'),true));
  }
 }
@@ -157,7 +162,10 @@ e.preventDefault();
 const type=byId('issue-type').value,location=byId('issue-location').value.trim(),description=byId('issue-description').value.trim();
 if(!location||!description)return;
 const id='DEMO-'+Date.now();
-cases.unshift({id,type,location,description,analysis:window.syndicDemoAnalysis.evaluate(type,location,description),status:'new',history:[{time:new Date().toLocaleString('fr-FR'),text:'Signalement fictif enregistré'}]});
+const analysis=window.syndicDemoAnalysis.evaluate(type,location,description);
+const guardianFirst=type==='Éclairage'&&/couloir|palier|hall|parties communes/i.test(location)&&!analysis.reasons.length;
+cases.unshift({id,type,location,description,analysis,status:guardianFirst?'guardian':'new',history:[{time:new Date().toLocaleString('fr-FR'),text:'Signalement fictif enregistré'}]});
+if(guardianFirst)cases[0].history.push({time:new Date().toLocaleString('fr-FR'),text:'Notification fictive au gardien : vérification demandée directement'});
 persist();render();byId('report-form').reset();
 });
 byId('reset').addEventListener('click',()=>{if(confirm('Effacer uniquement les dossiers fictifs de cette démonstration ?')){cases=[];persist();render()}});
