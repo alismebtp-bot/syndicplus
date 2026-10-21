@@ -1,5 +1,6 @@
 /** Routes /api/procedures/* : calculs sans état (aucune écriture en base, aucun envoi). */
-import { INCIDENT_TYPES, PATHWAYS } from './catalog';
+import { findBlocked, findDuplicates, findRecurrences, summarize, type CaseSnapshot } from './automation';
+import { INCIDENT_TYPES, PATHWAYS, type Pathway } from './catalog';
 import { DEMO_BUILDING, parseBuildingConfig, type BuildingConfig } from './config';
 import { compareQuotes, presidentCan, type CouncilAction, type Quote } from './council';
 import { afterGuardianCannotResolve, routeIncident, type ReporterRole } from './engine';
@@ -30,6 +31,28 @@ function config(body: Record<string, unknown>): { ok: true; value: BuildingConfi
   return parseBuildingConfig(body.config);
 }
 
+const PATHWAY_IDS = new Set(Object.keys(PATHWAYS));
+const MAX_CASES = 60;
+const text = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const ms = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 && v < 1e14 ? v : null);
+
+function snapshot(v: unknown): CaseSnapshot | null {
+  if (!isObj(v)) return null;
+  const createdAt = ms(v.createdAt);
+  const updatedAt = ms(v.updatedAt) ?? createdAt;
+  const id = text(v.id, 40);
+  const typeId = text(v.typeId, 60);
+  if (!id || !typeId || !createdAt || !updatedAt) return null;
+  const pathway = typeof v.pathway === 'string' && PATHWAY_IDS.has(v.pathway) ? (v.pathway as Pathway) : null;
+  const deadline = typeof v.deadlineHours === 'number' && Number.isFinite(v.deadlineHours) && v.deadlineHours >= 0 && v.deadlineHours <= 10_000 ? v.deadlineHours : null;
+  const list = (x: unknown, n: number, max: number) => (Array.isArray(x) ? x.filter((s): s is string => typeof s === 'string').slice(-n).map((s) => s.slice(0, max)) : []);
+  return { id, typeId, location: text(v.location, 100), description: text(v.description, 300), status: text(v.status, 30), statusLabel: text(v.statusLabel, 60) || undefined, pathway, createdAt, updatedAt, deadlineHours: deadline, nextActor: text(v.nextActor, 120), history: list(v.history, 12, 200), missing: list(v.missing, 5, 200) };
+}
+
+function snapshots(v: unknown): CaseSnapshot[] {
+  return Array.isArray(v) ? v.slice(0, MAX_CASES).map(snapshot).filter((x): x is CaseSnapshot => x !== null) : [];
+}
+
 function amount(v: unknown): number | undefined {
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 10_000_000 ? v : undefined;
 }
@@ -45,6 +68,20 @@ export async function handleProcedures(request: Request, path: string, body: () 
 
   const b = await body();
   if (!isObj(b)) return json({ error: 'Requête invalide' }, 400);
+
+  if (path === '/api/procedures/duplicates') {
+    const inc = isObj(b.incoming) ? b.incoming : null;
+    const typeId = inc ? text(inc.typeId, 60) : '';
+    if (!inc || !typeId) return json({ error: 'incoming.typeId requis' }, 400);
+    const now = ms(b.now) ?? Date.now();
+    return json({ candidates: findDuplicates({ typeId, location: text(inc.location, 100), description: text(inc.description, 300) }, snapshots(b.cases), now) });
+  }
+
+  if (path === '/api/procedures/review') {
+    const now = ms(b.now) ?? Date.now();
+    const cs = snapshots(b.cases);
+    return json({ blocked: findBlocked(cs, now), recurrences: findRecurrences(cs, now), summaries: Object.fromEntries(cs.map((c) => [c.id, summarize(c)])) });
+  }
 
   if (path === '/api/procedures/validate-config') {
     const c = parseBuildingConfig(b.config);

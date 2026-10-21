@@ -12,7 +12,7 @@ import { applyUpdate, createDossier, getStatus, listDossiers } from './repositor
 
 const MAX_BODY_BYTES = 10_000;
 /** La fiche d'un immeuble accompagne les calculs de parcours : limite plus large, toujours bornée. */
-const MAX_PROCEDURE_BODY_BYTES = 32_000;
+const MAX_PROCEDURE_BODY_BYTES = 64_000;
 
 const SECURITY_HEADERS: Record<string, string> = {
   'x-content-type-options': 'nosniff',

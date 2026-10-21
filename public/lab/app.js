@@ -6,6 +6,7 @@
 
   const CASES_KEY = 'syndicplus-demo-lab-v2';
   const CONFIG_KEY = 'syndicplus-demo-building-v1';
+  const CLOCK_KEY = 'syndicplus-demo-clock-offset';
   const ROLES = ['resident', 'guardian', 'manager', 'provider', 'council', 'building'];
   const REPORTER_OF = { resident: 'resident', guardian: 'guardian', manager: 'manager', provider: 'contractor', council: 'council_president', building: 'manager' };
   const REPORTER_LABEL = { resident: 'un résident', guardian: 'le gardien', manager: 'le gestionnaire', contractor: 'un prestataire', council_president: 'le président du conseil syndical' };
@@ -53,6 +54,9 @@
   let catalog = null;
   let current = 'resident';
   let perms = {};
+  let review = { blocked: [], recurrences: [], summaries: {} };
+  let pendingReport = null;
+  const demoNow = () => Date.now() + (Number(store.get(CLOCK_KEY, 0)) || 0);
 
   // ---------- Utilitaires d'affichage (textContent uniquement) ----------
   function el(tag, text, cls) { const e = document.createElement(tag); if (text !== undefined && text !== null) e.textContent = text; if (cls) e.className = cls; return e; }
@@ -61,6 +65,32 @@
   function log(d, text) { d.history.push({ time: now(), text }); d.updatedAt = Date.now(); }
   function setStatus(d, status, text) { d.status = status; if (text) log(d, text); persist(); render(); }
   function find(id) { return cases.find((c) => c.id === id); }
+
+  function nextActorLabel(d) {
+    const mgr = `${config?.managerName || 'Gestionnaire'} (gestionnaire)`;
+    switch (d.status) {
+      case 'guardian': case 'guardian_active': return `${d.decision?.firstActorName || 'Gardien'} (gardien)`;
+      case 'assigned': case 'progress': return `${d.contractor?.provider || 'Prestataire'} (prestataire)`;
+      case 'verification': return VERIFIER_LABEL[d.requiredVerifier] || mgr;
+      default: return mgr;
+    }
+  }
+  function snapshotOf(d) {
+    return { id: d.id, typeId: d.typeId, location: d.location, description: d.description, status: d.status, statusLabel: STATUS[d.status] || d.status, pathway: d.decision?.pathway || null, createdAt: d.createdAt || Date.now(), updatedAt: d.updatedAt || d.createdAt || Date.now(), deadlineHours: d.decision ? d.decision.deadlineHours : null, nextActor: nextActorLabel(d), history: d.history.map((h) => h.text), missing: d.decision?.missing || [] };
+  }
+  // Seule la dernière analyse demandée est affichée (une réponse plus ancienne et plus lente est ignorée).
+  let reviewSeq = 0;
+  async function refreshReview() {
+    const seq = ++reviewSeq;
+    let result;
+    try {
+      result = await api('/api/procedures/review', { cases: cases.slice(0, 60).map(snapshotOf), now: demoNow() });
+    } catch { result = { blocked: [], recurrences: [], summaries: {}, error: true }; }
+    if (seq !== reviewSeq) return;
+    review = result;
+    // Mise à jour même si l'onglet n'est pas affiché : il sera à jour à l'ouverture.
+    renderManagerReview();
+  }
 
   async function api(path, body) {
     const res = await fetch(path, body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -85,6 +115,7 @@
     }
     const slot = byId(name).querySelector('.report-slot');
     if (slot) slot.append(byId('report-box'));
+    if (name === 'manager' && config) refreshReview();
     if (name === 'building') {
       if (config) renderBuilding();
       else byId('building-form').replaceChildren(el('p', 'Chargement de la fiche…', 'empty'));
@@ -127,7 +158,17 @@
   }
 
   // ---------- Signalement ----------
+  // Un seul signalement à la fois : un double clic ne doit jamais créer deux dossiers.
+  let submitting = false;
   byId('report-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+    submitting = true;
+    const submitButton = byId('report-form').querySelector('button[type=submit]');
+    submitButton.disabled = true;
+    try { await handleReport(e); } finally { submitting = false; submitButton.disabled = false; }
+  });
+  async function handleReport(e) {
     e.preventDefault();
     const errBox = byId('report-error');
     errBox.classList.add('hidden');
@@ -143,6 +184,16 @@
     if (danger === 'Je ne sais pas') signals.push('Danger possible, à confirmer');
     const reportedBy = REPORTER_OF[current];
     const d = { id: 'DEMO-' + Date.now(), typeId, typeLabel: label, location, description, reportedBy, analysis, dangerSignals: signals, history: [], createdAt: Date.now() };
+    // Doublon probable ? Proposer d'ajouter le signalement au dossier existant (jamais de fusion automatique).
+    if (!pendingReport || pendingReport.force !== true) {
+      try {
+        const open = cases.filter((c) => c.status !== 'closed').slice(0, 60).map(snapshotOf);
+        const { candidates } = await api('/api/procedures/duplicates', { incoming: { typeId, location, description }, cases: open, now: demoNow() });
+        if (candidates.length) { pendingReport = { d, candidates }; showDuplicates(); return; }
+      } catch { /* vérification des doublons indisponible : on crée le dossier */ }
+    }
+    pendingReport = null;
+    byId('duplicate-box').replaceChildren();
     log(d, `Signalement enregistré par ${REPORTER_LABEL[reportedBy]}`);
     const submit = e.submitter || byId('report-form').querySelector('button[type=submit]');
     submit.disabled = true;
@@ -159,7 +210,30 @@
     } finally {
       submit.disabled = false;
     }
-  });
+  }
+
+  function showDuplicates() {
+    const box = byId('duplicate-box');
+    box.replaceChildren();
+    if (!pendingReport) return;
+    const wrap = el('div', undefined, 'warning');
+    wrap.append(el('strong', 'Ce problème semble déjà signalé'));
+    for (const c of pendingReport.candidates) {
+      const existing = find(c.id);
+      if (!existing) continue;
+      const row = el('div', undefined, 'quote-row');
+      row.append(el('b', `${existing.typeLabel} · ${existing.location}`), el('span', `${STATUS[existing.status] || existing.status} — ${c.reasons.join(', ')}`));
+      row.append(button('Ajouter mon signalement à ce dossier', () => {
+        const r = pendingReport.d;
+        existing.linkedReports = [...(existing.linkedReports || []), { by: r.reportedBy, description: r.description, at: now() }];
+        log(existing, `Signalement associé (${REPORTER_LABEL[r.reportedBy]}) : ${r.description}`);
+        pendingReport = null; box.replaceChildren(); persist(); byId('report-form').reset(); byId('issue-type').value = 'eclairage_commun'; render();
+      }, 'secondary'));
+      wrap.append(row);
+    }
+    wrap.append(button('Non, créer un nouveau dossier', () => { pendingReport.force = true; byId('report-form').requestSubmit(); }));
+    box.append(wrap);
+  }
 
   // ---------- Carte de dossier ----------
   function card(d, todo, next) {
@@ -184,6 +258,7 @@
     for (const r of d.decision.reasons) ul.append(el('li', r));
     for (const m of d.decision.missing) ul.append(el('li', 'Information manquante : ' + m));
     det.append(ul);
+    if (d.linkedReports?.length) det.append(el('p', `${d.linkedReports.length} signalement(s) associé(s) à ce dossier.`, 'small'));
     if (window.syndicDemoAnalysis && ['manager_decision', 'guardian', 'emergency'].includes(d.status)) window.syndicDemoAnalysis.display(det, d);
     wrap.append(det);
   }
@@ -395,6 +470,34 @@
     }
   }
 
+  function renderManagerReview() {
+    const box = byId('manager-review');
+    if (!box) return;
+    const open = new Set([...box.querySelectorAll('details[open]')].map(detailsKey));
+    box.replaceChildren();
+    const blocked = review.blocked.filter((b) => find(b.id));
+    const head = el('div', undefined, 'section-title'); head.append(el('h3', 'À relancer'), el('span', String(blocked.length), 'count')); box.append(head);
+    if (review.error) box.append(el('p', 'Analyse des dossiers indisponible.', 'empty'));
+    else if (!blocked.length) box.append(el('p', 'Aucun dossier bloqué.', 'empty'));
+    for (const b of blocked) {
+      const d = find(b.id);
+      const w = card(d, `Sans action depuis le délai prévu (+${b.overdueHours} h). Relance préparée pour ${b.nextActor}.`, 'Validez la relance : elle n’est jamais envoyée automatiquement.');
+      const det = el('details'); det.append(el('summary', 'Voir la relance préparée'));
+      det.append(el('p', 'Objet : ' + b.reminder.subject, 'small'));
+      const pre = el('p', b.reminder.body, 'small'); pre.style.whiteSpace = 'pre-line'; det.append(pre);
+      w.append(det);
+      actions(w, button('Valider la relance (simulation)', () => { log(d, `Relance validée par le gestionnaire pour ${b.nextActor} (simulation, aucun envoi)`); d.updatedAt = demoNow(); persist(); render(); }));
+      const sum = review.summaries[d.id];
+      if (sum) { const s2 = el('details'); s2.append(el('summary', 'Résumé du dossier')); const ul = el('ul'); for (const l of sum) ul.append(el('li', l)); s2.append(ul); w.append(s2); }
+      box.append(w);
+    }
+    if (review.recurrences.length) {
+      const h2 = el('div', undefined, 'section-title'); h2.append(el('h3', 'Problèmes récurrents'), el('span', String(review.recurrences.length), 'count')); box.append(h2);
+      for (const r of review.recurrences) box.append(el('p', r.message, 'todo'));
+    }
+    for (const dt of box.querySelectorAll('details')) if (open.has(detailsKey(dt))) dt.open = true;
+  }
+
   function managerView(host) {
     const urgent = cases.filter((d) => MANAGER_URGENT.includes(d.status));
     const decide = cases.filter((d) => MANAGER_DECISION.includes(d.status) || (d.status === 'verification' && d.requiredVerifier === 'manager'));
@@ -406,6 +509,7 @@
       if (!list.length) host.append(el('p', emptyText, 'empty'));
       for (const d of list) host.append(managerCard(d));
     };
+    const reviewBox = el('div'); reviewBox.id = 'manager-review'; host.append(reviewBox);
     section('Urgences', urgent, 'Aucune urgence.');
     section('Décisions à prendre', decide, 'Aucune décision en attente.');
     const det = el('details');
@@ -606,7 +710,10 @@
     const views = { resident: residentView, guardian: guardianView, manager: managerView, provider: providerView, council: councilView };
     const open = new Set([...document.querySelectorAll('[id$="-cases"] details[open]')].map(detailsKey));
     for (const [name, view] of Object.entries(views)) { const host = byId(name + '-cases'); host.replaceChildren(); view(host); }
+    renderManagerReview();
     for (const dt of document.querySelectorAll('[id$="-cases"] details')) if (open.has(detailsKey(dt))) dt.open = true;
+    clearTimeout(render.reviewTimer);
+    render.reviewTimer = setTimeout(refreshReview, 150);
   }
 
   // ---------- Fiche de l'immeuble ----------
@@ -662,6 +769,13 @@
     fp.append(grid, el('p', 'Sans plafond ET référence vérifiée, le président ne peut autoriser aucune dépense. Il ne passe jamais de commande.', 'small'));
     form.append(fp);
     // Astreinte
+    const fclock = el('fieldset'); fclock.append(el('legend', 'Horloge de la démonstration'));
+    const clock = el('select'); clock.setAttribute('aria-label', 'Avancer l’horloge de la démo');
+    for (const [v, t] of [['0', 'Heure réelle'], [String(24 * 3600e3), '+1 jour'], [String(3 * 24 * 3600e3), '+3 jours'], [String(8 * 24 * 3600e3), '+8 jours']]) { const o = el('option', t); o.value = v; clock.append(o); }
+    clock.value = String(Number(store.get(CLOCK_KEY, 0)) || 0);
+    clock.addEventListener('change', () => { store.set(CLOCK_KEY, Number(clock.value)); render(); });
+    fclock.append(field('Avancer le temps pour voir les dossiers bloqués et les relances', clock));
+    form.append(fclock);
     const fe = el('fieldset'); fe.append(el('legend', 'Urgences'));
     const onCall = textInput(c.emergency.onCallContact, 'Contact d’astreinte'); fe.append(field('Contact d’astreinte du cabinet', onCall));
     form.append(fe);

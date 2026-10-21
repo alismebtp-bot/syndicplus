@@ -1,6 +1,6 @@
 # Assistants IA
 
-> **État actuel : aucune IA n'est connectée.** Le bouton « Besoin d'aide ? » et « Assistant IA (démo) » ouvrent un menu de navigation. L'IA réelle arrive au Sprint 3.
+> **État actuel : aucun modèle d'IA n'est connecté.** Des **automatisations déterministes** sont en place (`src/procedures/automation.ts`) : doublons, dossiers bloqués, relances préparées, résumé de dossier, pannes récurrentes, analyse guidée par règles. Elles proposent toujours ; rien n'est fusionné, envoyé ou décidé sans validation humaine. Le modèle d'IA viendra les compléter (compréhension du texte libre, résumés d'échanges, pièces jointes) via l'interface `AIProvider`, le moteur P1–P6 restant seul juge des autorisations.
 
 ## 1. Quatre capacités autour du même dossier
 

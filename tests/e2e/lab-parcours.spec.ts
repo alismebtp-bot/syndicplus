@@ -35,7 +35,7 @@ async function report(page: Page, o: { as?: string; type?: string; description?:
 }
 
 const statusOf = (page: Page, host: string) => page.locator(`#${host}-cases article .status`).first();
-const managerCount = (page: Page, i: number) => page.locator('#manager-cases .section-title .count').nth(i);
+const managerCount = (page: Page, title: string) => page.locator('#manager-cases .section-title', { hasText: title }).locator('.count');
 
 async function technicianCompletes(page: Page) {
   await tab(page, 'provider');
@@ -51,8 +51,8 @@ test.describe('P1 — petit entretien : gardien d’abord', () => {
     await report(page);
     await expect(statusOf(page, 'resident')).toHaveText('À traiter par le gardien');
     await tab(page, 'manager');
-    await expect(managerCount(page, 0)).toHaveText('0');
-    await expect(managerCount(page, 1)).toHaveText('0');
+    await expect(managerCount(page, 'Urgences')).toHaveText('0');
+    await expect(managerCount(page, 'Décisions à prendre')).toHaveText('0');
     await tab(page, 'guardian');
     await expect(page.locator('#guardian-cases')).toContainText('Vérifier sur place, puis réparer');
     await btn(page, 'Je prends en charge').click();
@@ -70,7 +70,7 @@ test.describe('P1 — petit entretien : gardien d’abord', () => {
     await page.getByLabel('Estimation du coût').fill('120');
     await btn(page, 'Prestataire nécessaire').click();
     await tab(page, 'manager');
-    await expect(managerCount(page, 1)).toHaveText('0');
+    await expect(managerCount(page, 'Décisions à prendre')).toHaveText('0');
     await tab(page, 'provider');
     await expect(page.locator('#provider-cases')).toContainText('Mission pour Élec Services (démo)');
     await technicianCompletes(page);
@@ -91,7 +91,7 @@ test.describe('P1 — petit entretien : gardien d’abord', () => {
     await page.getByLabel('Estimation du coût').fill('400');
     await btn(page, 'Prestataire nécessaire').click();
     await tab(page, 'manager');
-    await expect(managerCount(page, 1)).toHaveText('1');
+    await expect(managerCount(page, 'Décisions à prendre')).toHaveText('1');
     await expect(btn(page, 'Valider l’affectation à Élec Services (démo)')).toBeVisible();
   });
 
@@ -117,7 +117,7 @@ test.describe('P5 — urgence : alertes parallèles, aucune attente', () => {
     await open(page);
     await report(page, { as: 'council', type: 'fuite_majeure', description: 'Eau qui coule du plafond du hall' });
     await tab(page, 'manager');
-    await expect(managerCount(page, 0)).toHaveText('1');
+    await expect(managerCount(page, 'Urgences')).toHaveText('1');
     await expect(page.locator('#manager-cases')).toContainText('Prévenus en parallèle : gestionnaire, président du conseil syndical, gardien en service, astreinte du prestataire');
     await tab(page, 'guardian');
     await expect(page.locator('#guardian-cases')).toContainText('Urgence : appliquez les consignes');
@@ -143,7 +143,7 @@ test.describe('P5 — urgence : alertes parallèles, aucune attente', () => {
     await btn(page, 'Je prends en charge').click();
     await btn(page, 'Danger / urgence').click();
     await tab(page, 'manager');
-    await expect(managerCount(page, 0)).toHaveText('1');
+    await expect(managerCount(page, 'Urgences')).toHaveText('1');
   });
 });
 
@@ -153,7 +153,7 @@ test.describe('P2 — maintenance sous contrat', () => {
     await report(page, { type: 'chauffage_collectif', description: 'Plus de chauffage dans tout le bâtiment depuis hier' });
     await expect(statusOf(page, 'resident')).toHaveText('Prestataire affecté');
     await tab(page, 'manager');
-    await expect(managerCount(page, 1)).toHaveText('0');
+    await expect(managerCount(page, 'Décisions à prendre')).toHaveText('0');
     await tab(page, 'provider');
     await expect(page.locator('#provider-cases')).toContainText('Chauffage Plus (démo)');
   });
