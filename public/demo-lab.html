@@ -42,7 +42,7 @@ a{color:#195fc8}button:focus-visible,a:focus-visible{outline:3px solid #f0a600;o
 <h2>Mes demandes</h2><div id="resident-cases"></div>
 </section>
 <section id="manager" class="panel hidden">
-<h2>Dossiers à traiter</h2><p class="small">Validez une affectation fictive. Aucun prestataire n'est contacté.</p>
+<h2>Dossiers à traiter</h2><p class="small">Vous n'intervenez que lorsqu'une décision est requise. Aucun prestataire réel n'est contacté.</p><label for="approval-limit">Plafond de préautorisation (démo, € HT)</label><input id="approval-limit" type="number" min="0" max="10000" step="50" value="250" aria-label="Plafond de préautorisation" /><p class="small">Le plafond n'est pas une autorisation juridique réelle. Une règle validée par le cabinet et un contrat applicable seraient indispensables en production.</p><p id="council-feed" class="small"></p>
 <div id="manager-cases"></div></section>
 <section id="provider" class="panel hidden">
 <h2>Missions affectées</h2><p class="small">Le prestataire de démonstration confirme l'avancement de sa mission.</p>
@@ -53,7 +53,7 @@ a{color:#195fc8}button:focus-visible,a:focus-visible{outline:3px solid #f0a600;o
 <script src="/demo-analysis.js"></script>
 <script>
 const KEY='syndicplus-demo-lab-v1';
-const statusLabels={new:'À qualifier',assigned:'Prestataire affecté',progress:'En intervention',completed:'Intervention réalisée',closed:'Clôturé',guardian:'À vérifier par le gardien',guardian_active:'Pris en charge par le gardien',guardian_done:'Réalisé par le gardien',guardian_blocked:'Prestataire nécessaire',guardian_danger:'Danger signalé'};
+const statusLabels={new:'À qualifier',assigned:'Prestataire affecté',progress:'En intervention',completed:'Intervention réalisée',closed:'Clôturé',guardian:'À vérifier par le gardien',guardian_active:'Pris en charge par le gardien',guardian_done:'Réalisé par le gardien',guardian_blocked:'Prestataire nécessaire',guardian_danger:'Danger signalé',quote:'Devis / validation nécessaire'};
 const byId=id=>document.getElementById(id);
 const read=()=>{try{const x=JSON.parse(localStorage.getItem(KEY));return Array.isArray(x)?x:[]}catch{return []}};
 let cases=read();
@@ -63,26 +63,39 @@ function control(text,callback,secondary=false){const e=el('button',text,seconda
 function role(name){for(const x of ['resident','manager','provider','guardian']){byId(x).classList.toggle('hidden',x!==name);byId(x+'-tab').setAttribute('aria-pressed',String(x===name))}}
 for(const name of ['resident','manager','provider','guardian'])byId(name+'-tab').addEventListener('click',()=>role(name));
 function transition(id,state,message){const d=cases.find(c=>c.id===id);if(!d)return;d.status=state;d.history.push({time:new Date().toLocaleString('fr-FR'),text:message});persist();render()}
+function informCouncil(d,message){d.councilNotice=message;d.history.push({time:new Date().toLocaleString('fr-FR'),text:'Information président du conseil syndical (simulation) : '+message})}
+function sendToContractor(id,amount){const d=cases.find(x=>x.id===id);if(!d)return;const max=Number(localStorage.getItem('sp-demo-ceiling')||250);if(!Number.isFinite(amount)||amount<0)return;
+ if(amount<=max&&!d.analysis?.reasons?.length){transition(id,'assigned','Mission fictive préautorisée selon plafond de démonstration '+max+' € HT ; devis/commande réels non transmis')}
+ else {transition(id,'quote','Devis ou validation du gestionnaire exigé : montant indicatif '+amount+' € HT')}
+}
 function details(d){const wrap=el('article',undefined,'note');wrap.append(el('strong',d.type+' · '+d.location),el('p',d.description),el('span',statusLabels[d.status],'status'));const hist=el('ul');for(const h of d.history){const li=el('li',h.time+' — '+h.text);hist.append(li)}wrap.append(hist);if(window.syndicDemoAnalysis&&d.status==='new')window.syndicDemoAnalysis.display(wrap,d);return wrap}
 function render(){
 for(const [name,target] of [['resident','resident-cases'],['manager','manager-cases'],['provider','provider-cases'],['guardian','guardian-cases']]){
 const host=byId(target);host.replaceChildren();
 const allowed=cases.filter(c=>name==='provider'?['assigned','progress','completed','closed'].includes(c.status):name==='guardian'?['guardian','guardian_active','guardian_done','guardian_blocked','guardian_danger'].includes(c.status):true);
+if(name==='manager'){const n=cases.filter(c=>c.councilNotice).length;byId('council-feed').textContent=n?n+' information(s) fictive(s) à destination du président du conseil syndical (aucun envoi).':'';}
 if(!allowed.length){host.append(el('p','Aucun dossier pour le moment.','small'));continue}
 for(const d of allowed){const card=details(d);
 if(name==='manager'){
  if(d.status==='new'&&d.type==='Éclairage'&&!(d.analysis?.reasons?.length))card.append(control('Demander une vérification au gardien',()=>transition(d.id,'guardian','Demande fictive transmise au gardien')));
- if(d.status==='guardian_blocked')card.append(control('Affecter au prestataire après contrôle',()=>transition(d.id,'assigned','Gestionnaire : transfert au prestataire après échec du gardien')));
+ if(d.status==='guardian_blocked'){
+  const label=el('label','Estimation de prestation (€ HT)');const input=el('input');input.type='number';input.min='0';input.max='100000';input.value='200';input.setAttribute('aria-label','Estimation du coût pour '+d.type);label.append(input);card.append(label);
+  card.append(control('Appliquer le circuit configuré',()=>sendToContractor(d.id,Number(input.value))));
+}
+if(d.status==='quote')card.append(control('Valider le devis (simulation)',()=>transition(d.id,'assigned','Gestionnaire : validation fictive après examen du devis')));
+
  if(d.status==='guardian_done')card.append(control('Valider la clôture',()=>transition(d.id,'closed','Clôture validée après intervention du gardien')));
  if(d.status==='guardian_danger')card.append(el('p','DANGER : contacter les services appropriés et appliquer les consignes de sécurité. Aucune affectation automatique.','warning'));
- if(d.status==='new')card.append(control('Affecter au prestataire (simulation)',()=>transition(d.id,'assigned','Mission fictive affectée au prestataire')));
+ if(d.status==='new'&&d.type!=='Fuite d’eau')card.append(control('Affecter au prestataire (simulation)',()=>transition(d.id,'assigned','Mission fictive affectée au prestataire')));
  if(d.status==='completed')card.append(control('Valider la clôture',()=>transition(d.id,'closed','Clôture validée par le gestionnaire')));
 }
 if(name==='guardian'){
  if(d.status==='guardian')card.append(control('Je prends en charge',()=>transition(d.id,'guardian_active','Gardien : prise en charge du constat')));
  if(d.status==='guardian_active'){
+  if(d.type==='Fuite d’eau')card.append(el('p','Constater la fuite uniquement si cela ne présente aucun risque. En cas de danger, appliquer la procédure d’urgence.','warning'));
+
    card.append(control('Petite réparation effectuée',()=>transition(d.id,'guardian_done','Gardien : tâche autorisée déclarée effectuée, validation à suivre')));
-   card.append(control('Prestataire nécessaire',()=>transition(d.id,'guardian_blocked','Gardien : intervention extérieure nécessaire'),true));
+   card.append(control('Prestataire nécessaire',()=>{const item=cases.find(x=>x.id===d.id);if(item?.type==='Fuite d’eau')informCouncil(item,'Fuite commune confirmée, intervention extérieure envisagée');transition(d.id,'guardian_blocked','Gardien : intervention extérieure nécessaire, décision ou préautorisation à contrôler')},true));
    card.append(control('Danger / urgence',()=>transition(d.id,'guardian_danger','Gardien : danger signalé, escalade immédiate à confirmer'),true));
  }
 }
@@ -97,9 +110,14 @@ e.preventDefault();
 const type=byId('issue-type').value,location=byId('issue-location').value.trim(),description=byId('issue-description').value.trim();
 if(!location||!description)return;
 const id='DEMO-'+Date.now();
-cases.unshift({id,type,location,description,analysis:window.syndicDemoAnalysis.evaluate(type,location,description),status:'new',history:[{time:new Date().toLocaleString('fr-FR'),text:'Signalement fictif enregistré'}]});
+const analysis=window.syndicDemoAnalysis.evaluate(type,location,description);
+const guardianFirst=type==='Fuite d’eau'&&!analysis.reasons.length;
+cases.unshift({id,type,location,description,analysis,status:guardianFirst?'guardian':'new',history:[{time:new Date().toLocaleString('fr-FR'),text:'Signalement fictif enregistré'}]});
+if(guardianFirst)cases[0].history.push({time:new Date().toLocaleString('fr-FR'),text:'Circuit fuite ordinaire : vérification du gardien avant gestionnaire'});
 persist();render();byId('report-form').reset();
 });
+byId('approval-limit').value=localStorage.getItem('sp-demo-ceiling')||'250';
+byId('approval-limit').addEventListener('change',e=>{const n=Number(e.target.value);if(Number.isFinite(n)&&n>=0&&n<=10000)localStorage.setItem('sp-demo-ceiling',String(n));else e.target.value=localStorage.getItem('sp-demo-ceiling')||'250'});
 byId('reset').addEventListener('click',()=>{if(confirm('Effacer uniquement les dossiers fictifs de cette démonstration ?')){cases=[];persist();render()}});
 render();
 </script></body></html>
