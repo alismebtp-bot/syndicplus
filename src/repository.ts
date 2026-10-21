@@ -36,8 +36,9 @@ const LIST_LIMIT = 500;
 
 export async function listDossiers(db: D1Database): Promise<Dossier[]> {
   const [d, h] = await db.batch<DossierRow | HistoryRow>([
-    db.prepare(`SELECT num,type,description,place,status,created_at FROM dossiers ORDER BY num DESC LIMIT ${LIST_LIMIT}`),
-    db.prepare('SELECT dossier_num,text,created_at FROM history ORDER BY id ASC'),
+    // Prototype public : uniquement les dossiers sans cabinet (les dossiers du cockpit sont cloisonnés par cabinet).
+    db.prepare(`SELECT num,type,description,place,status,created_at FROM dossiers WHERE cabinet_id IS NULL ORDER BY num DESC LIMIT ${LIST_LIMIT}`),
+    db.prepare('SELECT h.dossier_num,h.text,h.created_at FROM history h JOIN dossiers d ON d.num = h.dossier_num WHERE d.cabinet_id IS NULL AND h.internal = 0 ORDER BY h.id ASC'),
   ]);
   if (!d || !h) throw new Error('Lecture des dossiers impossible');
   const byNum = new Map<number, Dossier>();
@@ -66,7 +67,7 @@ export async function createDossier(db: D1Database, input: NewDossierInput): Pro
 }
 
 export async function getStatus(db: D1Database, num: number): Promise<string | null> {
-  const row = await db.prepare('SELECT status FROM dossiers WHERE num=?').bind(num).first<{ status: string }>();
+  const row = await db.prepare('SELECT status FROM dossiers WHERE num=? AND cabinet_id IS NULL').bind(num).first<{ status: string }>();
   return row?.status ?? null;
 }
 

@@ -15,6 +15,8 @@
     }
   ],
   "observability": { "enabled": true },
+  // Identité de démonstration du cockpit : DÉSACTIVÉE en production (le cockpit répond 401).
+  "vars": { "DEMO_IDENTITY": "disabled" },
 
   "env": {
     // Préproduction : https://syndicplus-staging.syndicplus.workers.dev
@@ -29,7 +31,9 @@
           "migrations_dir": "migrations"
         }
       ],
-      "observability": { "enabled": true }
+      "observability": { "enabled": true },
+      // Personas fictives activées en préproduction ; secret : wrangler secret put DEMO_SECRET --env staging
+      "vars": { "DEMO_IDENTITY": "enabled" }
     }
   }
 }

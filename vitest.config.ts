@@ -8,7 +8,8 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: './wrangler.jsonc' },
-        miniflare: { bindings: { TEST_MIGRATIONS: migrations } },
+        // Identité de démonstration activée pour les tests (secret de test, sans valeur ailleurs)
+        miniflare: { bindings: { TEST_MIGRATIONS: migrations, DEMO_IDENTITY: 'enabled', DEMO_SECRET: 'test-secret-only-for-vitest-0001' } },
       }),
     ],
     test: {

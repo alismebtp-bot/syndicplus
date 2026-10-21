@@ -7,6 +7,7 @@
  * Aucune authentification à ce stade (voir docs/SECURITY.md) — données fictives uniquement.
  */
 import { historyText, isMeaningfulUpdate, parseDossierUpdate, parseNewDossier, parseRef } from './domain';
+import { handleCockpit } from './cockpit/http';
 import { handleProcedures } from './procedures/http';
 import { applyUpdate, createDossier, getStatus, listDossiers } from './repository';
 
@@ -20,10 +21,10 @@ const SECURITY_HEADERS: Record<string, string> = {
   'x-frame-options': 'DENY',
 };
 
-export function json(data: unknown, status = 200): Response {
+export function json(data: unknown, status = 200, extra: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS },
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...SECURITY_HEADERS, ...extra },
   });
 }
 
@@ -41,6 +42,11 @@ async function readBody(request: Request, max = MAX_BODY_BYTES): Promise<unknown
 async function handleApi(request: Request, env: Env, path: string): Promise<Response> {
   if (path.startsWith('/api/procedures/')) {
     const res = await handleProcedures(request, path, () => readBody(request, MAX_PROCEDURE_BODY_BYTES), json);
+    if (res) return res;
+  }
+
+  if (path.startsWith('/api/cockpit/') || path.startsWith('/api/demo/')) {
+    const res = await handleCockpit(request, env, path, json);
     if (res) return res;
   }
 
