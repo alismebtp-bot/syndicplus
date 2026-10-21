@@ -2,18 +2,22 @@
    Moteur local à règles : ni modèle IA connecté ni diagnostic professionnel. */
 (function(){
   'use strict';
+  // Limites de mots compatibles avec les lettres accentuées (\b ne reconnaît que a-z/0-9).
+  // D = début de mot ; F = fin de mot ; un motif sans F accepte les terminaisons (brûl → brûlé, brûlant, brûlure).
+  const D='(?<![\\p{L}\\p{N}])', F='(?![\\p{L}\\p{N}])';
+  const rx=src=>new RegExp(src.replaceAll('<','('+D+')').replaceAll('>','('+F+')'),'iu');
   const highRisk = [
-    {re:/\b(fumee|fumée|incendie|feu|flamme|brul[eé]|brûl[eé])\b/i, reason:'Fumée, incendie ou brûlure signalés'},
-    {re:/\b(electrocut|électrocut|etincelle|étincelle|tableau electrique|tableau électrique)\b/i,reason:'Risque électrique possible'},
-    {re:/\b(coinc[eé]|bloqu[eé].*ascenseur|ascenseur.*bloqu[eé])\b/i,reason:'Personne potentiellement bloquée'},
-    {re:/\b(gaz|odeur de gaz)\b/i,reason:'Risque lié au gaz'},
-    {re:/\b(inondation|eau.*prise|eau.*electri|eau.*électri)\b/i,reason:'Dégât des eaux potentiellement dangereux'}
+    {re:rx('<(fum[ée]es?|incendies?|feux?|flammes?)>|<br[uû]l'), reason:'Fumée, incendie ou brûlure signalés'},
+    {re:rx('<([ée]lectrocut|[ée]lectrisé|[ée]tincel)|<tableaux? [ée]lectriques?>'), reason:'Risque électrique possible'},
+    {re:rx('<coinc[ée]|<(bloqu[ée]\\p{L}*)>.*<ascenseurs?>|<ascenseurs?>.*<bloqu[ée]'), reason:'Personne potentiellement bloquée'},
+    {re:rx('<gaz>'), reason:'Risque lié au gaz'},
+    {re:rx('<inond|<eau>.*<(prises?|[ée]lectri)'), reason:'Dégât des eaux potentiellement dangereux'}
   ];
   const contexts = [
-    {re:/\b(fuite|eau|canalisation|plomberie)\b/i,category:'Plomberie'},
-    {re:/\b(chauffage|radiateur|chaudi[eè]re)\b/i,category:'Chauffage'},
-    {re:/\b(ampoule|luminaire|éclairage|eclairage|lumi[eè]re)\b/i,category:'Éclairage'},
-    {re:/\b(ascenseur|monte.charges)\b/i,category:'Ascenseur'}
+    {re:rx('<(fuites?|eau|canalisations?|plomberie)>'),category:'Plomberie'},
+    {re:rx('<(chauffage|radiateurs?|chaudi[eè]res?)>'),category:'Chauffage'},
+    {re:rx('<(ampoules?|luminaires?|[ée]clairage|lumi[eè]res?)>'),category:'Éclairage'},
+    {re:rx('<(ascenseurs?|monte.charges?)>'),category:'Ascenseur'}
   ];
   function evaluate(type,location,description){
     const text=[type,location,description].join(' ');
