@@ -32,6 +32,7 @@ _Dernière mise à jour : Sprint 0 (v0.3)._
 | Cloche de notifications (badge « 2 ») | **Simulé** | Nombre fixe, ouvre les annonces |
 | « Besoin d'aide ? » | **Simulé** | Menu de navigation, **aucune IA** |
 | Profil « Jean Dupont · Appartement 3B » | **Simulé** | Pas de compte |
+| Photo de la résidence (bandeau) et vignettes photo par type de problème | **Simulé** | Images de démonstration générées par IA (`public/img/`), identiques pour toutes les résidences ; à remplacer par les photos réelles de chaque copropriété |
 
 ## Interface syndic
 
