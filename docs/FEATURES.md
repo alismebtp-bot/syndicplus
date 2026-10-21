@@ -50,6 +50,10 @@ Données fictives dans le navigateur ; le **choix du circuit** est calculé par 
 | Président CS : devis reçus, comparaison, avis consultatif | **Fonctionnel (démo locale)** | Comparaison calculée par le serveur, sans attributaire ; l'avis ne vaut pas décision |
 | Président CS : autorisation de dépense | **Fonctionnel (démo locale)** | Uniquement avec délégation vérifiée et dans le plafond ; la commande reste au gestionnaire |
 | Gestionnaire : retenir une entreprise et commander | **Simulé** pour la commande | Aucune commande réelle |
+| Détection des doublons au signalement (même type ou métier, même emplacement, 72 h) | **Fonctionnel (règles)** | Proposition « ajouter à ce dossier » ; jamais de fusion automatique |
+| Dossiers bloqués (délai du parcours dépassé ; P5 > 2 h ; vérification/réserves > 72 h) | **Fonctionnel (règles)** | Section « À relancer » du gestionnaire |
+| Relances préparées | **Fonctionnel (rédaction)** · **Simulé** pour l'envoi | Validées par le gestionnaire ; aucun envoi |
+| Résumé de dossier, pannes récurrentes (≥ 3 en 90 jours au même endroit) | **Fonctionnel (règles)** | Pas de modèle d'IA à ce stade |
 
 ## Interface résident
 

@@ -57,8 +57,25 @@ describe('POST /api/procedures/route', () => {
     expect((await post('/api/procedures/route', '[1,2]')).status).toBe(400);
   });
   it('refuse un corps trop volumineux', async () => {
-    const res = await post('/api/procedures/route', { typeId: 'nettoyage', reportedBy: 'resident', pad: 'x'.repeat(40_000) });
+    const res = await post('/api/procedures/route', { typeId: 'nettoyage', reportedBy: 'resident', pad: 'x'.repeat(70_000) });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/procedures/duplicates et review', () => {
+  const now = Date.parse('2026-10-21T10:00:00Z');
+  const c = (id: string, extra: Record<string, unknown> = {}) => ({ id, typeId: 'eclairage_commun', location: 'Couloir du 3e étage', description: 'Luminaire en panne', status: 'guardian', pathway: 'P1', createdAt: now - 7_200_000, updatedAt: now - 7_200_000, deadlineHours: 48, nextActor: 'Gardien', history: [], missing: [], ...extra });
+  it('propose un doublon', async () => {
+    const { candidates } = (await (await post('/api/procedures/duplicates', { incoming: { typeId: 'eclairage_commun', location: 'couloir 3ème étage', description: 'ampoule' }, cases: [c('A')], now })).json()) as { candidates: { id: string }[] };
+    expect(candidates.map((x) => x.id)).toEqual(['A']);
+  });
+  it('détecte un dossier bloqué et ignore les entrées invalides', async () => {
+    const { blocked, summaries } = (await (await post('/api/procedures/review', { cases: [c('A', { updatedAt: now - 60 * 3_600_000 }), { id: 'bad' }, 'x'], now })).json()) as { blocked: { id: string }[]; summaries: Record<string, string[]> };
+    expect(blocked.map((x) => x.id)).toEqual(['A']);
+    expect(Object.keys(summaries)).toEqual(['A']);
+  });
+  it('refuse un signalement entrant sans type', async () => {
+    expect((await post('/api/procedures/duplicates', { incoming: {}, cases: [] })).status).toBe(400);
   });
 });
 
