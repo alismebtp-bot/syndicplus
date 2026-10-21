@@ -1,0 +1,36 @@
+import { test, expect } from '@playwright/test';
+test('le président du conseil syndical confirme avant clôture administrative',async ({page})=>{
+ await page.goto('/demo-lab.html');
+ await page.getByLabel('Nature de la demande').selectOption('Chauffage');
+ await page.getByRole('button',{name:'Créer le signalement fictif'}).click();
+ await page.getByRole('button',{name:'Gestionnaire'}).click();
+ await page.getByRole('button',{name:'Affecter au prestataire (simulation)'}).click();
+ await page.getByRole('button',{name:'Prestataire'}).click();
+ await page.getByRole('button',{name:'Confirmer le début'}).click();
+ await page.getByLabel('Compte rendu du technicien').fill('Chauffage remis en service, contrôle visuel réalisé');
+ await page.getByLabel('Inspection visuelle effectuée').check();
+ await page.getByRole('button',{name:'Marquer les travaux réalisés'}).click();
+ await page.getByRole('button',{name:'Gestionnaire'}).click();
+ await expect(page.getByRole('button',{name:'Clôturer administrativement'})).toHaveCount(0);
+ await page.getByRole('button',{name:'Président CS'}).click();
+ await page.getByRole('button',{name:'Travaux conformes'}).click();
+ await page.getByRole('button',{name:'Gestionnaire'}).click();
+ await page.getByRole('button',{name:'Clôturer administrativement'}).click();
+ await expect(page.locator('#manager-cases')).toContainText('Clôturé');
+});
+test('réserves du conseil syndical empêchent la clôture',async ({page})=>{
+ await page.goto('/demo-lab.html');
+ await page.getByLabel('Nature de la demande').selectOption('Chauffage');
+ await page.getByRole('button',{name:'Créer le signalement fictif'}).click();
+ await page.getByRole('button',{name:'Gestionnaire'}).click();
+ await page.getByRole('button',{name:'Affecter au prestataire (simulation)'}).click();
+ await page.getByRole('button',{name:'Prestataire'}).click();
+ await page.getByRole('button',{name:'Confirmer le début'}).click();
+ await page.getByLabel('Compte rendu du technicien').fill('Intervention de test');
+ await page.getByLabel('Inspection visuelle effectuée').check();
+ await page.getByRole('button',{name:'Marquer les travaux réalisés'}).click();
+ await page.getByRole('button',{name:'Président CS'}).click();
+ await page.getByRole('button',{name:'Émettre des réserves'}).click();
+ await page.getByRole('button',{name:'Gestionnaire'}).click();
+ await expect(page.getByRole('button',{name:'Clôturer administrativement'})).toHaveCount(0);
+});

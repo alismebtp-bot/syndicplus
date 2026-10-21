@@ -17,6 +17,19 @@ textarea{min-height:90px}label{display:block;font-weight:600;margin-top:12px}
 .hidden{display:none}.status{background:#eaf3fd;color:#225a9a;border-radius:30px;padding:5px 10px;font-size:.85rem}
 .note{border-left:3px solid #d6e2f0;padding:5px 12px;margin:10px 0}
 a{color:#195fc8}button:focus-visible,a:focus-visible{outline:3px solid #f0a600;outline-offset:2px}
+
+.role-head{display:flex;align-items:flex-start;gap:12px}.role-icon{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:12px;background:#e9f2ff;color:#155db7;font-size:24px}.role-head p{margin:4px 0 12px;color:#61748a}
+:root{--line:#e1e8f2}body{background:linear-gradient(#edf4fc,#f7f9fc 340px);color:#162e4c}
+main{max-width:950px}.panel{border-radius:18px;box-shadow:0 10px 35px #1c395715;margin-top:20px;padding:clamp(18px,3vw,28px)}
+h1{font-size:clamp(1.65rem,3vw,2.15rem);letter-spacing:-.035em}h2{letter-spacing:-.02em}
+.tabs{padding:7px;background:white;border:1px solid var(--line);border-radius:15px}.tabs button{border-radius:10px}
+.note{border:1px solid var(--line);border-left:0;border-radius:14px;background:#fbfdff;padding:16px}
+.note strong{display:block;margin-bottom:9px}.note p{line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:2px solid #8cb6f5;outline-offset:2px}
+.tech-actions{margin-top:14px;display:flex;gap:9px;flex-wrap:wrap}.tech-actions button{flex:1;min-width:160px}
+.tech-check{display:flex;align-items:center;gap:10px;margin:9px 0;font-weight:500}.tech-check input{width:20px;height:20px;margin:0;flex:none}
+.tech-summary{font-size:.88rem;color:#526781;background:#eaf2fa;border-radius:10px;padding:12px;margin:8px 0 14px}
+@media(max-width:650px){.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.tabs button{min-width:0}.tech-actions{flex-direction:column}.tech-actions button{width:100%}}
 </style></head>
 <body>
 <header><strong>🏢 SyndicPlus</strong> <span class="small">/ Laboratoire fonctionnel</span></header>
@@ -26,10 +39,10 @@ a{color:#195fc8}button:focus-visible,a:focus-visible{outline:3px solid #f0a600;o
 <div class="row tabs" role="group" aria-label="Choisir une interface">
 <button id="resident-tab" aria-pressed="true" type="button">Résident</button>
 <button id="manager-tab" aria-pressed="false" type="button">Gestionnaire</button>
-<button id="provider-tab" aria-pressed="false" type="button">Prestataire</button><button id="guardian-tab" aria-pressed="false" type="button">Gardien</button>
+<button id="provider-tab" aria-pressed="false" type="button">Prestataire</button><button id="guardian-tab" aria-pressed="false" type="button">Gardien</button><button id="council-tab" aria-pressed="false" type="button">Président CS</button>
 </div>
 <section id="resident" class="panel">
-<h2>Signaler un problème</h2>
+<div class="role-head"><div class="role-icon">⌂</div><div><h2>Espace résident</h2><p>Signaler et suivre, en toute simplicité.</p></div></div><h2>Signaler un problème</h2>
 <form id="report-form">
 <label for="issue-type">Nature de la demande</label>
 <select id="issue-type"><option>Éclairage</option><option>Fuite d’eau</option><option>Chauffage</option><option>Autre</option></select>
@@ -42,32 +55,67 @@ a{color:#195fc8}button:focus-visible,a:focus-visible{outline:3px solid #f0a600;o
 <h2>Mes demandes</h2><div id="resident-cases"></div>
 </section>
 <section id="manager" class="panel hidden">
-<h2>Dossiers à traiter</h2><p class="small">Validez une affectation fictive. Aucun prestataire n'est contacté.</p>
+<div class="role-head"><div class="role-icon">▤</div><div><h2>Gestionnaire</h2><p>Décisions à prendre et suivi des dossiers.</p></div></div><h2>Dossiers à traiter</h2><p class="small">Validez une affectation fictive. Aucun prestataire n'est contacté.</p>
 <div id="manager-cases"></div></section>
 <section id="provider" class="panel hidden">
-<h2>Missions affectées</h2><p class="small">Le prestataire de démonstration confirme l'avancement de sa mission.</p>
+<div class="role-head"><div class="role-icon">⚒</div><div><h2>Technicien prestataire</h2><p>Prise en charge, contrôles effectués et validation des travaux.</p></div></div><h2>Missions affectées</h2><p class="small">Le prestataire de démonstration confirme l'avancement de sa mission.</p>
 <div id="provider-cases"></div></section>
-<section id="guardian" class="panel hidden"><h2>Interventions du gardien</h2><p class="small">Vérifications et petites réparations autorisées uniquement. Aucun ordre réel n'est envoyé.</p><div id="guardian-cases"></div></section>
-<section class="panel"><div class="row"><button class="secondary" id="reset" type="button">Réinitialiser les dossiers fictifs</button><a href="/" style="text-align:right">Revenir à la maquette</a></div></section>
+<section id="guardian" class="panel hidden"><div class="role-head"><div class="role-icon">⌁</div><div><h2>Gardien</h2><p>Constats terrain et petites réparations autorisées.</p></div></div><h2>Interventions du gardien</h2><p class="small">Vérifications et petites réparations autorisées uniquement. Aucun ordre réel n'est envoyé.</p><div id="guardian-cases"></div></section>
+<section id="council" class="panel hidden"><div class="role-head"><div class="role-icon">◎</div><div><h2>Président du conseil syndical</h2><p>Contrôle de bonne exécution et réserves selon les missions confiées.</p></div></div><div id="council-cases"></div></section><section class="panel"><div class="row"><button class="secondary" id="reset" type="button">Réinitialiser les dossiers fictifs</button><a href="/" style="text-align:right">Revenir à la maquette</a></div></section>
 </main>
 <script src="/demo-analysis.js"></script>
 <script>
 const KEY='syndicplus-demo-lab-v1';
-const statusLabels={new:'À qualifier',assigned:'Prestataire affecté',progress:'En intervention',completed:'Intervention réalisée',closed:'Clôturé',guardian:'À vérifier par le gardien',guardian_active:'Pris en charge par le gardien',guardian_done:'Réalisé par le gardien',guardian_blocked:'Prestataire nécessaire',guardian_danger:'Danger signalé'};
+const statusLabels={new:'À qualifier',assigned:'Prestataire affecté',progress:'En intervention',completed:'Intervention réalisée',closed:'Clôturé',verification:'À vérifier sur place',reserved:'Réserves émises',verified:'Exécution confirmée',guardian:'À vérifier par le gardien',guardian_active:'Pris en charge par le gardien',guardian_done:'Réalisé par le gardien',guardian_blocked:'Prestataire nécessaire',guardian_danger:'Danger signalé'};
 const byId=id=>document.getElementById(id);
 const read=()=>{try{const x=JSON.parse(localStorage.getItem(KEY));return Array.isArray(x)?x:[]}catch{return []}};
 let cases=read();
 function persist(){localStorage.setItem(KEY,JSON.stringify(cases))}
 function el(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e}
 function control(text,callback,secondary=false){const e=el('button',text,secondary?'secondary':'');e.type='button';e.addEventListener('click',callback);return e}
-function role(name){for(const x of ['resident','manager','provider','guardian']){byId(x).classList.toggle('hidden',x!==name);byId(x+'-tab').setAttribute('aria-pressed',String(x===name))}}
-for(const name of ['resident','manager','provider','guardian'])byId(name+'-tab').addEventListener('click',()=>role(name));
+function role(name){for(const x of ['resident','manager','provider','guardian','council']){byId(x).classList.toggle('hidden',x!==name);byId(x+'-tab').setAttribute('aria-pressed',String(x===name))}}
+for(const name of ['resident','manager','provider','guardian','council'])byId(name+'-tab').addEventListener('click',()=>role(name));
 function transition(id,state,message){const d=cases.find(c=>c.id===id);if(!d)return;d.status=state;d.history.push({time:new Date().toLocaleString('fr-FR'),text:message});persist();render()}
+function technicianForm(d,card){
+ const panel=el('div',undefined,'tech-summary');
+ panel.append(el('strong','Vérification et validation de l’intervention'));
+ panel.append(el('p','Référence : '+d.id+' · '+d.location));
+ const note=el('label','Compte rendu des travaux et vérifications');const area=el('textarea');area.setAttribute('aria-label','Compte rendu du technicien');area.maxLength=1000;area.placeholder='Travaux réalisés, vérifications effectuées, résultat et éventuelles réserves…';area.value=d.techReport||'';note.append(area);panel.append(note);
+ const checkLabel=el('label','Contrôles réellement effectués');
+ panel.append(checkLabel);
+ const checks=[['visual','Inspection visuelle effectuée'],['safe','Zone vérifiée sans danger constaté'],['functional','Essai de fonctionnement effectué']];
+ const inputs={};
+ for(const [key,text] of checks){const l=el('label',undefined,'tech-check');const box=el('input');box.type='checkbox';box.checked=Boolean(d.techChecks?.[key]);l.append(box,el('span',text));panel.append(l);inputs[key]=box}
+ const photoLabel=el('label','Photo de vérification (facultative, nom du fichier seulement)');const photo=el('input');photo.type='file';photo.accept='image/*';photo.setAttribute('aria-label','Photo justificative');photoLabel.append(photo);panel.append(photoLabel);
+ const message=el('p','','small');panel.append(message);
+ const actions=el('div',undefined,'tech-actions');
+ const save=()=>{d.techReport=area.value.trim();d.techChecks=Object.fromEntries(Object.entries(inputs).map(([key,node])=>[key,node.checked]));if(photo.files?.length){d.photoEvidenceName=photo.files[0].name}persist();message.textContent='Vérifications enregistrées dans ce navigateur (simulation).';};
+ actions.append(control('Enregistrer les vérifications',save,true));
+ actions.append(control('Marquer les travaux réalisés',()=>{save();if(!d.techReport||!d.techChecks?.visual){message.textContent='Ajoutez un compte rendu et confirmez le contrôle visuel avant de terminer.';return}(()=>{d.requiredVerifier=d.type==='Éclairage'?'guardian':'council';transition(d.id,'verification','Technicien : travaux déclarés réalisés. Vérification terrain attendue par '+(d.requiredVerifier==='guardian'?'le gardien':'le président du conseil syndical')+' (simulation)')})()}));
+ actions.append(control('Problème non résolu',()=>{save();transition(d.id,'assigned','Technicien : difficulté signalée, réévaluation nécessaire (simulation)')},true));
+ panel.append(actions);card.append(panel)
+}
+function decideVerification(d,actor,decision){
+ const permitted=d.status==='verification'||d.status==='reserved';
+ if(!permitted)return;
+ d.verifications=d.verifications||{};
+ d.verifications[actor]=decision;
+ d.history.push({time:new Date().toLocaleString('fr-FR'),text:(actor==='guardian'?'Gardien':'Président CS')+' : '+(decision==='ok'?'bonne exécution apparente confirmée':decision==='reserve'?'réserves signalées':'vérification impossible')+' (simulation)'});
+ d.status=decision==='reserve'?'reserved':(d.verifications[d.requiredVerifier]==='ok'?'verified':'verification');
+ persist();render();
+}
+function verificationActions(d,actor,card){
+ if(!['verification','reserved'].includes(d.status)||d.requiredVerifier!==actor)return;
+ card.append(el('p','Vérification sur place — confirmation visuelle, pas réception juridique des travaux.','small'));
+ card.append(control('Travaux conformes',()=>decideVerification(d,actor,'ok')));
+ card.append(control('Émettre des réserves',()=>decideVerification(d,actor,'reserve'),true));
+ card.append(control('Impossible de vérifier',()=>decideVerification(d,actor,'unavailable'),true));
+}
 function details(d){const wrap=el('article',undefined,'note');wrap.append(el('strong',d.type+' · '+d.location),el('p',d.description),el('span',statusLabels[d.status],'status'));const hist=el('ul');for(const h of d.history){const li=el('li',h.time+' — '+h.text);hist.append(li)}wrap.append(hist);if(window.syndicDemoAnalysis&&d.status==='new')window.syndicDemoAnalysis.display(wrap,d);return wrap}
 function render(){
-for(const [name,target] of [['resident','resident-cases'],['manager','manager-cases'],['provider','provider-cases'],['guardian','guardian-cases']]){
+for(const [name,target] of [['resident','resident-cases'],['manager','manager-cases'],['provider','provider-cases'],['guardian','guardian-cases'],['council','council-cases']]){
 const host=byId(target);host.replaceChildren();
-const allowed=cases.filter(c=>name==='provider'?['assigned','progress','completed','closed'].includes(c.status):name==='guardian'?['guardian','guardian_active','guardian_done','guardian_blocked','guardian_danger'].includes(c.status):true);
+const allowed=cases.filter(c=>name==='provider'?['assigned','progress','completed','closed','verification','reserved','verified'].includes(c.status):name==='guardian'?['guardian','guardian_active','guardian_done','guardian_blocked','guardian_danger'].includes(c.status)||(c.requiredVerifier==='guardian'&&['verification','reserved','verified'].includes(c.status)):name==='council'?c.requiredVerifier==='council'&&['verification','reserved','verified','closed'].includes(c.status):true);
 if(!allowed.length){host.append(el('p','Aucun dossier pour le moment.','small'));continue}
 for(const d of allowed){const card=details(d);
 if(name==='manager'){
@@ -76,9 +124,12 @@ if(name==='manager'){
  if(d.status==='guardian_done')card.append(control('Valider la clôture',()=>transition(d.id,'closed','Clôture validée après intervention du gardien')));
  if(d.status==='guardian_danger')card.append(el('p','DANGER : contacter les services appropriés et appliquer les consignes de sécurité. Aucune affectation automatique.','warning'));
  if(d.status==='new')card.append(control('Affecter au prestataire (simulation)',()=>transition(d.id,'assigned','Mission fictive affectée au prestataire')));
- if(d.status==='completed')card.append(control('Valider la clôture',()=>transition(d.id,'closed','Clôture validée par le gestionnaire')));
+ if(d.status==='verified')card.append(control('Clôturer administrativement',()=>transition(d.id,'closed','Gestionnaire : clôture administrative après confirmation terrain')));
+ if(d.status==='reserved')card.append(el('p','Réserves à traiter : retour vers le prestataire ou nouvelle vérification nécessaire.','warning'));
+ if(d.status==='verification')card.append(el('p','En attente de la confirmation terrain ; aucune clôture possible.','small'));
 }
 if(name==='guardian'){
+ verificationActions(d,'guardian',card);
  if(d.status==='guardian')card.append(control('Je prends en charge',()=>transition(d.id,'guardian_active','Gardien : prise en charge du constat')));
  if(d.status==='guardian_active'){
    card.append(control('Petite réparation effectuée',()=>transition(d.id,'guardian_done','Gardien : tâche autorisée déclarée effectuée, validation à suivre')));
@@ -86,9 +137,10 @@ if(name==='guardian'){
    card.append(control('Danger / urgence',()=>transition(d.id,'guardian_danger','Gardien : danger signalé, escalade immédiate à confirmer'),true));
  }
 }
+if(name==='council')verificationActions(d,'council',card);
 if(name==='provider'){
  if(d.status==='assigned')card.append(control('Confirmer le début',()=>transition(d.id,'progress','Le prestataire a commencé l’intervention')));
- if(d.status==='progress')card.append(control('Marquer les travaux réalisés',()=>transition(d.id,'completed','Intervention déclarée réalisée, en attente de validation')));
+ if(d.status==='progress')technicianForm(d,card);
 }
 host.append(card)}
 }}
