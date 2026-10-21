@@ -5,6 +5,10 @@ test('les six rôles possèdent un aperçu mobile lisible et des actions adapté
    await page.getByRole('button',{name:label,exact:true}).click();
    await expect(page.locator('#role-caption')).toHaveText(label);
    await expect(page.locator('#mobile-body .card').first()).toBeVisible();
+   await page.getByRole('button',{name:/Ouvrir le dossier/}).first().click();
+   await expect(page.getByText('Prochaine action :',{exact:false})).toBeVisible();
+   await expect(page.getByRole('heading',{name:'Actions disponibles'})).toBeVisible();
+   await page.getByRole('button',{name:'← Retour aux dossiers'}).click();
    await expect(page.locator('#mobile-body .primary').first()).toBeVisible();
    await page.locator('#mobile-body .primary').first().click();
    await expect(page.locator('#notice')).not.toBeEmpty();
