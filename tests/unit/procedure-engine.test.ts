@@ -16,6 +16,19 @@ describe('circuits suggérés, jamais commandes automatiques', () => {
     expect(proposeRoute({...base, guardianAvailable:false, guardianCanRepair:true}).guardianCanCompleteLocally).toBe(false);
     expect(proposeRoute({...base, danger:true, guardianCanRepair:true}).firstActor).toBe('emergency');
   });
+  it('fuite ordinaire : gardien en service et circuit de repli hors horaires', () => {
+    const normal=proposeRoute({...base,kind:'minor_leak',guardianOnDuty:true,guardianCanRepair:true});
+    expect(normal.mode).toBe('normal');
+    expect(normal.firstActor).toBe('guardian');
+    expect(normal.guardianCanCompleteLocally).toBe(true);
+    expect(normal.urgentNotifications).toBeUndefined();
+    const absent=proposeRoute({...base,kind:'minor_leak',guardianOnDuty:false,guardianBackupConfigured:true});
+    expect(absent.firstActor).toBe('manager');
+    expect(absent.fallbackProcedure).toContain('remplaçant');
+    const urgent=proposeRoute({...base,kind:'minor_leak',danger:true});
+    expect(urgent.mode).toBe('emergency');
+    expect(urgent.firstActor).toBe('emergency');
+  });
   it('respecte le mainteneur contractuel du chauffage', () => {
     const route=proposeRoute({...base,kind:'collective_heating'});
     expect(route.firstActor).toBe('contractor');
