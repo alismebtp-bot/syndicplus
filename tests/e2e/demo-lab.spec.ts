@@ -21,7 +21,7 @@ test('laboratoire démo : signalement, affectation, intervention et clôture', a
   await page.getByRole('button', { name: 'Travaux conformes' }).click();
   await page.getByRole('button', { name: 'Gestionnaire' }).click();
   await page.getByRole('button', { name: 'Clôturer administrativement' }).click();
-  await page.getByRole('button', { name: 'Résident' }).click();
+  await page.getByRole('button', { name: 'Résident', exact: true }).click();
   await expect(page.locator('#resident-cases')).toContainText('Clôturé');
   await page.reload();
   await expect(page.locator('#resident-cases')).toContainText('Clôturé');
