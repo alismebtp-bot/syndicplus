@@ -77,6 +77,43 @@ Tous les pouvoirs et seuils doivent être **explicitement saisis et validés** p
 - Toute recommandation IA indique sa raison, la règle et les sources disponibles.
 - Toute action est tracée ; rien n'est envoyé à une personne extérieure depuis le laboratoire.
 
+
+## Scénarios complémentaires (17 à 36) — à confirmer par les copropriétés pilotes
+
+| # | Signalement | Premier circuit proposé | Gardien | Syndic / décision | Conseil syndical | Vigilance |
+|---|---|---|---|---|---|---|
+| 17 | Canalisation bouchée / refoulement | Mise en sécurité puis plombier selon contrat | Constat sans exposition | Pilote interventions communes | Info si dégâts collectifs | Eaux usées, locaux impactés |
+| 18 | Eau chaude collective absente | Exploitant ECS / astreinte contractuelle | Relais occupants si prévu | Suivi et escalade | Info si large impact | Température, légionelles, interruption |
+| 19 | Suspicion de légionelles / eau impropre | Procédure sanitaire et professionnels qualifiés | Aucun prélèvement improvisé | Escalade immédiate | Info contrôlée | Ne pas diagnostiquer via IA |
+| 20 | Serrure de hall forcée / intrusion | Mise en sûreté ; serrurier / forces de l'ordre si nécessaire | Constat sans confrontation | Coordination et preuves | Info sécurité | Conserver preuve, données sensibles |
+| 21 | Badge ou accès individuel perdu | Procédure d'identité / habilitation | Remise selon mandat | Contrôle droits d'accès | Pas de notification | Ne pas délivrer l'accès sur simple demande |
+| 22 | Portail parking bloqué | Mainteneur contractuel | Vérification visuelle sûre | Suivi | Si immobilisation collective | Risque d'écrasement / désenclavement |
+| 23 | Inondation parking sous-sol | Procédure urgence, pompage qualifié | Pas d'accès dangereux | Urgence et sinistre | Info prioritaire | Risques électriques et structurels |
+| 24 | Détection incendie / alarme sécurité | Consignes de sécurité, secours si nécessaire | Missions sécurité autorisées uniquement | Immédiat | Information appropriée | Ne pas neutraliser alarme sans autorisation |
+| 25 | Éclairage de sécurité défaillant | Prestataire sécurité / électricien compétent | Simple signalement | Priorité à qualifier | Info si impact majeur | Obligations de sécurité et périodicité |
+| 26 | Garde-corps instable / chute possible | Balisage sûr, mise en sécurité, entreprise qualifiée | Signale et éloigne si sûr | Urgence et arbitrage | Information prioritaire | Danger pour personnes, pas d'attente |
+| 27 | Façade : chute d'enduit ou élément | Sécurisation et diagnostic compétent | Ne pas intervenir en hauteur | Urgence / commande appropriée | Info prioritaire | Périmètre et risque voie publique |
+| 28 | Infiltration en appartement d'origine incertaine | Collecte preuves, recherche cause, syndic si parties communes | Constat si mission prévue | Orientation assurance/technique | Si impact commun | Ne pas attribuer la responsabilité par IA |
+| 29 | Nuisances sonores / trouble de voisinage | Informations et orientation humaine | Observation limitée à ses missions | Qualification juridique | Selon récurrence collective | Vie privée, pas de surveillance abusive |
+| 30 | Dégradation volontaire / vandalisme | Mise en sécurité, constat documenté | Signalement | Assurances / police selon situation | Info si coût collectif | Accusations non vérifiées interdites |
+| 31 | Présence de nuisibles | Entreprise spécialisée selon contrat | Constat si compatible | Plan coordonné si collectif | Si infestation répétée | Données habitants et produits biocides |
+| 32 | Arbre dangereux / branche tombée | Mise en sécurité, élagueur qualifié | Balisage si sûr | Décision et suivi | Info si danger ou travaux importants | Risque chute / espace public |
+| 33 | Bornes de recharge IRVE en panne | Mainteneur IRVE selon contrat | Simple constat | Suivi contrat / accès | Si service collectif impacté | Habilitation électrique, données utilisateurs |
+| 34 | Panne photovoltaïque collective | Installateur/mainteneur habilité | Aucun accès toiture / électrique | Vérifie contrat et garantie | Info si impact financier significatif | Pas de manipulation haute tension |
+| 35 | Suspicion amiante/plomb lors de travaux | Arrêt / sécurisation de la zone, expert compétent | Pas de prélèvement | Vérifie diagnostics et obligations | Consultation selon travaux | Ne jamais déclarer absence de risque via IA |
+| 36 | Travaux votés en retard / entreprise absente | Gestionnaire relance selon marché | Constat terrain si prévu | Vérifie contrat, réception, pénalités éventuelles | Rapport d'avancement | Ne pas inventer pénalités ni actes juridiques |
+
+### Scénarios transversaux à tester sur chacun des circuits
+
+- Gardien absent, en congé, en dehors de ses heures ou sans compétence requise : route alternative sans attente indéfinie.
+- Prestataire sous contrat injoignable : escalade vers procédure d'astreinte ou gestionnaire, sans commander un autre prestataire hors autorisation.
+- Plusieurs résidents signalent le même équipement : proposer le rattachement au dossier existant sans effacer les déclarations individuelles.
+- Incident déclaré dans une partie privative avec conséquences communes incertaines : demander une vérification, ne pas présumer de la responsabilité.
+- Conseil syndical informé mais sans pouvoir de commander : distinguer notification, consultation et autorisation.
+- Urgence le soir, week-end ou jour férié : basculer vers les contacts réellement configurés, pas vers un numéro inventé.
+- Prestataire termine sans preuve suffisante et résident conteste : statut « résolution à confirmer », validation humaine avant clôture.
+- Incident récurrent : déclencher une suggestion d'analyse des causes et des coûts, pas automatiquement un nouveau marché.
+
 ## Références réglementaires
 - https://www.service-public.gouv.fr/particuliers/vosdroits/F2608
 - https://www.service-public.gouv.fr/particuliers/vosdroits/F2610
