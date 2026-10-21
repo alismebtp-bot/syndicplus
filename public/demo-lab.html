@@ -49,6 +49,7 @@ a{color:#195fc8}button:focus-visible,a:focus-visible{outline:3px solid #f0a600;o
 <div id="provider-cases"></div></section>
 <section class="panel"><div class="row"><button class="secondary" id="reset" type="button">Réinitialiser les dossiers fictifs</button><a href="/" style="text-align:right">Revenir à la maquette</a></div></section>
 </main>
+<script src="/demo-analysis.js"></script>
 <script>
 const KEY='syndicplus-demo-lab-v1';
 const statusLabels={new:'À qualifier',assigned:'Prestataire affecté',progress:'En intervention',completed:'Intervention réalisée',closed:'Clôturé'};
@@ -61,7 +62,7 @@ function control(text,callback,secondary=false){const e=el('button',text,seconda
 function role(name){for(const x of ['resident','manager','provider']){byId(x).classList.toggle('hidden',x!==name);byId(x+'-tab').setAttribute('aria-pressed',String(x===name))}}
 for(const name of ['resident','manager','provider'])byId(name+'-tab').addEventListener('click',()=>role(name));
 function transition(id,state,message){const d=cases.find(c=>c.id===id);if(!d)return;d.status=state;d.history.push({time:new Date().toLocaleString('fr-FR'),text:message});persist();render()}
-function details(d){const wrap=el('article',undefined,'note');wrap.append(el('strong',d.type+' · '+d.location),el('p',d.description),el('span',statusLabels[d.status],'status'));const hist=el('ul');for(const h of d.history){const li=el('li',h.time+' — '+h.text);hist.append(li)}wrap.append(hist);return wrap}
+function details(d){const wrap=el('article',undefined,'note');wrap.append(el('strong',d.type+' · '+d.location),el('p',d.description),el('span',statusLabels[d.status],'status'));const hist=el('ul');for(const h of d.history){const li=el('li',h.time+' — '+h.text);hist.append(li)}wrap.append(hist);if(window.syndicDemoAnalysis&&d.status==='new')window.syndicDemoAnalysis.display(wrap,d);return wrap}
 function render(){
 for(const [name,target] of [['resident','resident-cases'],['manager','manager-cases'],['provider','provider-cases']]){
 const host=byId(target);host.replaceChildren();
@@ -83,7 +84,7 @@ e.preventDefault();
 const type=byId('issue-type').value,location=byId('issue-location').value.trim(),description=byId('issue-description').value.trim();
 if(!location||!description)return;
 const id='DEMO-'+Date.now();
-cases.unshift({id,type,location,description,status:'new',history:[{time:new Date().toLocaleString('fr-FR'),text:'Signalement fictif enregistré'}]});
+cases.unshift({id,type,location,description,analysis:window.syndicDemoAnalysis.evaluate(type,location,description),status:'new',history:[{time:new Date().toLocaleString('fr-FR'),text:'Signalement fictif enregistré'}]});
 persist();render();byId('report-form').reset();
 });
 byId('reset').addEventListener('click',()=>{if(confirm('Effacer uniquement les dossiers fictifs de cette démonstration ?')){cases=[];persist();render()}});
