@@ -31,6 +31,21 @@ _Dernière mise à jour : Sprint 0 (v0.3)._
 | Permissions du président du CS, comparaison de devis | **Fonctionnel (calcul)** | Aucune demande de devis réellement envoyée |
 | Notifications (urgence, président, gardien) | **Simulé** | Le moteur indique qui prévenir ; aucun envoi |
 
+## Laboratoire (`/demo-lab.html`)
+
+Données fictives dans le navigateur ; le **choix du circuit** est calculé par le moteur réel (API `/api/procedures/*`).
+
+| Élément | Statut | Détail |
+|---|---|---|
+| Signalement par tout acteur (résident, gardien, gestionnaire, prestataire, président CS) | **Fonctionnel (démo locale)** | Formulaire unique, rôle du déclarant transmis au moteur |
+| Routage P1–P6 selon la fiche de l'immeuble | **Fonctionnel** (calcul serveur) | Plus aucune exception codée par type dans l'interface |
+| Gardien d'abord (P1), clôture directe du petit entretien si la fiche l'autorise | **Fonctionnel (démo locale)** | |
+| Gardien ne peut pas résoudre → contrat préautorisé vérifié ou gestionnaire | **Fonctionnel (démo locale)** | Plafond vérifié côté serveur |
+| Urgence P5 : alertes parallèles, mise en sécurité, suite à décider | **Simulé** pour les alertes (aucun envoi) | Le circuit est réel, les notifications sont affichées |
+| « Votre journée » du gestionnaire : urgences, décisions, suivis automatiques repliés | **Fonctionnel (démo locale)** | |
+| Fiche de l'immeuble éditable (gardien, remplaçant, contrats, préautorisations, président, astreinte) | **Fonctionnel (démo locale)** | Validée par le serveur ; enregistrée dans le navigateur, pas en base |
+| Vérification par le vérificateur désigné, réserves, reprise, clôture | **Fonctionnel (démo locale)** | |
+
 ## Interface résident
 
 | Élément | Statut | Détail |

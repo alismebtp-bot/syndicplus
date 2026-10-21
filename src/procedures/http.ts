@@ -46,6 +46,11 @@ export async function handleProcedures(request: Request, path: string, body: () 
   const b = await body();
   if (!isObj(b)) return json({ error: 'Requête invalide' }, 400);
 
+  if (path === '/api/procedures/validate-config') {
+    const c = parseBuildingConfig(b.config);
+    return c.ok ? json({ ok: true, config: c.value, warnings: c.warnings }) : json({ ok: false, errors: c.errors }, 400);
+  }
+
   if (path === '/api/procedures/route') {
     const c = config(b);
     if (!c.ok) return json({ error: 'Configuration de l’immeuble invalide', details: c.errors }, 400);
