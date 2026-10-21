@@ -7,9 +7,12 @@
  * Aucune authentification à ce stade (voir docs/SECURITY.md) — données fictives uniquement.
  */
 import { historyText, isMeaningfulUpdate, parseDossierUpdate, parseNewDossier, parseRef } from './domain';
+import { handleProcedures } from './procedures/http';
 import { applyUpdate, createDossier, getStatus, listDossiers } from './repository';
 
 const MAX_BODY_BYTES = 10_000;
+/** La fiche d'un immeuble accompagne les calculs de parcours : limite plus large, toujours bornée. */
+const MAX_PROCEDURE_BODY_BYTES = 32_000;
 
 const SECURITY_HEADERS: Record<string, string> = {
   'x-content-type-options': 'nosniff',
@@ -24,11 +27,11 @@ export function json(data: unknown, status = 200): Response {
   });
 }
 
-async function readBody(request: Request): Promise<unknown | null> {
-  if (Number(request.headers.get('content-length') || 0) > MAX_BODY_BYTES) return null;
+async function readBody(request: Request, max = MAX_BODY_BYTES): Promise<unknown | null> {
+  if (Number(request.headers.get('content-length') || 0) > max) return null;
   try {
     const text = await request.text();
-    if (text.length > MAX_BODY_BYTES) return null;
+    if (text.length > max) return null;
     return JSON.parse(text) as unknown;
   } catch {
     return null;
@@ -36,6 +39,11 @@ async function readBody(request: Request): Promise<unknown | null> {
 }
 
 async function handleApi(request: Request, env: Env, path: string): Promise<Response> {
+  if (path.startsWith('/api/procedures/')) {
+    const res = await handleProcedures(request, path, () => readBody(request, MAX_PROCEDURE_BODY_BYTES), json);
+    if (res) return res;
+  }
+
   if (path === '/api/dossiers' && request.method === 'GET') {
     return json(await listDossiers(env.DB));
   }
