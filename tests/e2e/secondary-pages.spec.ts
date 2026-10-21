@@ -3,6 +3,6 @@ test('dix pages secondaires accessibles sans altérer la page d accueil',async({
  await page.goto('/secondary-pages.html');
  const picker=page.locator('#screen-select');
  await expect(picker.locator('option')).toHaveCount(10);
- for(let i=0;i<10;i++){await picker.selectOption(String(i));await expect(page.locator('#heading')).not.toBeEmpty();await expect(page.locator('.item').first()).toBeVisible();await page.locator('.actions button').first().click();await expect(page.getByRole('status')).toContainText('Simulation')}
+ for(let i=0;i<10;i++){if(await picker.isVisible()) await picker.selectOption(String(i)); else await page.locator('#sidebar button').nth(i).click();await expect(page.locator('#heading')).not.toBeEmpty();await expect(page.locator('.item').first()).toBeVisible();await page.locator('.actions button').first().click();await expect(page.getByRole('status')).toContainText('Simulation')}
  await page.goto('/');await expect(page.locator('body')).toBeVisible();
 });
