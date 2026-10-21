@@ -7,6 +7,8 @@ export interface ProcedureInput {
   danger: boolean;
   guardianAvailable: boolean;
   guardianScopeIncludesCheck: boolean;
+  /** Permission explicite : petit entretien non dangereux dans les missions du gardien. */
+  guardianCanRepair?: boolean;
   contractedProviderAvailable: boolean;
   guardianTimeoutMinutes?: number;
 }
@@ -18,6 +20,8 @@ export interface RouteProposal {
   fallbackActor: Actor;
   reason: string[];
   requiresHumanReview: boolean;
+  guardianCanCompleteLocally?: boolean;
+  onGuardianCannotResolve?: 'contractor_after_manager_approval' | 'manager_review';
 }
 export function proposeRoute(input: ProcedureInput): RouteProposal {
   if (input.danger || input.kind === 'major_leak') {
@@ -51,9 +55,11 @@ export function proposeRoute(input: ProcedureInput): RouteProposal {
       notify: [],
       decisionRequiredFrom: 'manager',
       nextAction: guardian
-        ? 'Demander un constat visuel au gardien dans ses missions, puis escalader à échéance.'
+        ? (input.guardianCanRepair ? 'Demander au gardien de vérifier puis, uniquement si autorisé et sans danger, de réaliser le petit entretien ; sinon demander un prestataire au gestionnaire.' : 'Demander un constat visuel au gardien dans ses missions, puis escalader à échéance.')
         : 'Faire qualifier par le syndic ou un prestataire autorisé, sans attendre le gardien.',
       fallbackActor: 'manager',
+      guardianCanCompleteLocally: guardian && input.guardianCanRepair === true,
+      onGuardianCannotResolve: 'contractor_after_manager_approval',
       reason: guardian ? ['Gardien disponible et vérification prévue dans ses missions'] : ['Gardien absent ou vérification non autorisée'],
       requiresHumanReview: true,
     };
