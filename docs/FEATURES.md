@@ -4,7 +4,7 @@ Légende : **Fonctionnel** = implémenté côté serveur, persistant et testé �
 
 > Règle : une fonctionnalité n'est « Fonctionnelle » que si elle passe par l'API, est enregistrée en base et est couverte par un test.
 
-_Dernière mise à jour : Sprint 0 (v0.3)._
+_Dernière mise à jour : cockpit responsable de cabinet (v0.4)._
 
 ## Dossiers (cœur)
 
@@ -55,6 +55,28 @@ Données fictives dans le navigateur ; le **choix du circuit** est calculé par 
 | Relances préparées | **Fonctionnel (rédaction)** · **Simulé** pour l'envoi | Validées par le gestionnaire ; aucun envoi |
 | Résumé de dossier, pannes récurrentes (≥ 3 en 90 jours au même endroit) | **Fonctionnel (règles)** | Pas de modèle d'IA à ce stade |
 
+## Cockpit du responsable de cabinet (`/cabinet/`, préproduction et local)
+
+Détail : [`COCKPIT.md`](COCKPIT.md). Personnes et données **fictives** ; identité de démonstration signée, **désactivée en production** (401).
+
+| Élément | Statut | Détail |
+|---|---|---|
+| Identité de démonstration, rôles, cabinets, périmètre par copropriété | **Fonctionnel (démo)** | Personas fictives ; l'authentification réelle reste prévue (Sprint 1) |
+| Isolation entre cabinets et périmètre limité | **Fonctionnel** | Tests API et navigateur |
+| Vue globale : indicateurs cliquables, « Nécessite votre attention » justifié | **Fonctionnel** | Calculé sur les données enregistrées |
+| Portefeuille : recherche, filtres, tri, fiche copropriété | **Fonctionnel** | |
+| Équipe : charge, absences, remplaçant | **Fonctionnel** | Sans classement ; remplaçant enregistré, audité, notifié en interne |
+| Centre incidents : 11 signaux automatiques, fiche dossier | **Fonctionnel** | Récurrences via le moteur d'automatisation |
+| Demander un point / une vérification, signaler prioritaire, réaffecter, programmer une revue | **Fonctionnel** | Historique interne + journal d'audit + notification interne |
+| Préparer une décision | **Fonctionnel** | Crée une décision « en attente » ; n'autorise ni n'engage rien |
+| Finances : devis / autorisation / commande / facture / paiement séparés, écarts | **Fonctionnel (lecture)** | La saisie des pièces n'existe pas encore dans le cockpit |
+| Consulter un devis ou un contrat | **Fonctionnel (référence)** | Référence de la pièce ; le fichier n'est pas stocké dans le prototype |
+| Prestataires : indicateurs contextualisés | **Fonctionnel** | Jamais « défaillant » |
+| Qualité & satisfaction | **Fonctionnel** | Clôture ≠ satisfaction ; commentaires avec consentement |
+| Assistant (9 questions) | **Fonctionnel (règles)** | Pas d'IA générative, sources et confiance affichées |
+| Journal d'audit, historique des décisions, export CSV | **Fonctionnel** | Journal en ajout seul |
+| Notifications aux personnes concernées | **Fonctionnel (interne)** · **Prévu** pour e-mail/SMS | Enregistrées dans SyndicPlus, pas encore d'écran de lecture pour les gestionnaires |
+
 ## Interface résident
 
 | Élément | Statut | Détail |
@@ -85,7 +107,8 @@ Données fictives dans le navigateur ; le **choix du circuit** est calculé par 
 |---|---|
 | Authentification, rôles, cabinets | **Prévu** (Sprint 1) — aujourd'hui **tout visiteur peut lire et modifier** |
 | Bascule Résident / Syndic | **Simulé** — simple sélecteur de démonstration |
-| Prestataire, responsable de cabinet, conseil syndical | **Prévu** |
+| Prestataire, conseil syndical (comptes réels) | **Prévu** |
+| Responsable de cabinet | **Fonctionnel (démo)** — voir le cockpit |
 | Notifications e-mail / SMS | **Prévu** (Sprint 4) |
 | Imports CSV / Excel / PDF | **Prévu** (Sprint 5) |
 | Bilan annuel PDF | **Prévu** |
