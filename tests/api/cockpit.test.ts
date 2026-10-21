@@ -297,14 +297,4 @@ describe('Audit de sécurité — en-têtes et requêtes inter-sites', () => {
     expect((await call('/api/demo/logout', { method: 'POST', headers })).status).toBe(403);
     expect((await call('/api/cockpit/overview', { headers: { cookie: lea, 'sec-fetch-site': 'same-origin' } })).status).toBe(200);
   });
-
-  it('protège les pages contre l’affichage dans un cadre ; politique stricte pour le cockpit', async () => {
-    const home = await call('/');
-    expect(home.headers.get('x-frame-options')).toBe('DENY');
-    expect(home.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
-    const cockpit = await call('/cabinet/');
-    expect(cockpit.status).toBe(200);
-    expect(cockpit.headers.get('content-security-policy')).toContain("script-src 'self'");
-    expect(cockpit.headers.get('cache-control')).toBe('no-store');
-  });
 });

@@ -179,3 +179,13 @@ test('un texte piégé enregistré est affiché comme du texte, sans violation d
   expect(await page.locator('.hist img').count()).toBe(0);
   expect(violations).toEqual([]);
 });
+
+test('en-têtes de sécurité : aucune page ne peut être affichée dans un cadre ; politique stricte pour le cockpit', async ({ request }) => {
+  const home = await request.get('/');
+  expect(home.headers()['x-frame-options']).toBe('DENY');
+  expect(home.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
+  const cockpit = await request.get('/cabinet/');
+  expect(cockpit.headers()['content-security-policy']).toContain("script-src 'self'");
+  expect(cockpit.headers()['cache-control']).toBe('no-store');
+  expect((await request.get('/_headers')).status()).not.toBe(200);
+});

@@ -21,27 +21,6 @@ const SECURITY_HEADERS: Record<string, string> = {
   'x-frame-options': 'DENY',
 };
 
-/** En-têtes appliqués aux pages et fichiers statiques (le binding ASSETS n'en ajoute aucun). */
-const PAGE_HEADERS: Record<string, string> = {
-  ...SECURITY_HEADERS,
-  'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=()',
-  // Interdit l'affichage dans un cadre (détournement de clic) sans toucher aux scripts des pages existantes
-  'content-security-policy': "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
-};
-/** Cockpit : politique stricte (aucun script en ligne, aucune ressource externe). */
-const COCKPIT_CSP =
-  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'";
-
-export function withPageHeaders(res: Response, path: string): Response {
-  const out = new Response(res.body, res);
-  for (const [k, v] of Object.entries(PAGE_HEADERS)) out.headers.set(k, v);
-  if (path === '/cabinet' || path.startsWith('/cabinet/')) {
-    out.headers.set('content-security-policy', COCKPIT_CSP);
-    out.headers.set('cache-control', 'no-store');
-  }
-  return out;
-}
-
 export function json(data: unknown, status = 200, extra: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -101,7 +80,7 @@ async function handleApi(request: Request, env: Env, path: string): Promise<Resp
 export default {
   async fetch(request, env): Promise<Response> {
     const path = new URL(request.url).pathname;
-    if (!path.startsWith('/api/')) return withPageHeaders(await env.ASSETS.fetch(request), path);
+    if (!path.startsWith('/api/')) return env.ASSETS.fetch(request); // en-têtes de sécurité : public/_headers
     try {
       return await handleApi(request, env, path);
     } catch (e) {
