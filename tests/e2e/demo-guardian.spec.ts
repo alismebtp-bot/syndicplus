@@ -10,7 +10,7 @@ test('gardien répare un éclairage, gestionnaire valide la clôture', async ({ 
   await page.getByRole('button', { name: 'Petite réparation effectuée' }).click();
   await page.getByRole('button', { name: 'Gestionnaire' }).click();
   await page.getByRole('button', { name: 'Valider la clôture' }).click();
-  await page.getByRole('button', { name: 'Résident' }).click();
+  await page.getByRole('button', { name: 'Résident', exact: true }).click();
   await expect(page.locator('#resident-cases')).toContainText('Clôturé');
 });
 
