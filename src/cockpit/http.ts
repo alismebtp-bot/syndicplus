@@ -235,7 +235,7 @@ async function dossierAction(db: D1Database, p: Principal, s: Snapshot, num: num
     case 'prepare_decision': {
       guard = {
         stmt: db.prepare(
-          `INSERT INTO decisions (dossier_num,kind,label,amount_ht,status,authority,prepared_by,prepared_at)
+          `INSERT OR IGNORE INTO decisions (dossier_num,kind,label,amount_ht,status,authority,prepared_by,prepared_at)
            SELECT ?,?,?,?,'pending',?,?,? WHERE NOT EXISTS (SELECT 1 FROM decisions WHERE dossier_num = ? AND status = 'pending' AND label = ?)`,
         ).bind(num, a.kind, a.label, a.amountHt, a.authority, p.userId, new Date(s.now).toISOString(), num, a.label),
         conflict: 'Une décision identique est déjà en attente sur ce dossier.',

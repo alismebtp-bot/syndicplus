@@ -17,7 +17,7 @@ Checklists appliquées : IDOR, logique métier, requêtes simultanées, sécurit
 | # | Gravité | Constat | Correction | Preuve |
 |---|---|---|---|---|
 | 3 | Moyenne | **Logique métier** : sur un dossier clôturé, le serveur acceptait « demander un point », « programmer une revue » et « préparer une décision » (y compris une dépense de 5 000 € HT). Seule l'interface masquait ces boutons. | Le serveur n'autorise plus que la demande de vérification sur un dossier clôturé (409 sinon). | Test API « un dossier clôturé… » |
-| 4 | Faible | **Requêtes simultanées** : 10 envois identiques créaient 10 décisions ; deux réaffectations simultanées passaient toutes les deux (historique et notifications en double). | Écritures conditionnelles exécutées en premier (`… WHERE assignee_user_id IS ?`, `INSERT … WHERE NOT EXISTS`, idem priorité et remplaçant) ; la requête perdante reçoit 409. | Tests API « dix décisions… », « deux réaffectations… » |
+| 4 | Faible | **Requêtes simultanées** : 10 envois identiques créaient 10 décisions ; deux réaffectations simultanées passaient toutes les deux (historique et notifications en double). | Écritures conditionnelles exécutées en premier (`… WHERE assignee_user_id IS ?`, index unique sur les décisions en attente (migration `0003`), idem priorité et remplaçant) ; la requête perdante reçoit 409. Vérifié en ligne : 10 envois simultanés → 1 décision. | Tests API « dix décisions… », « deux réaffectations… » |
 
 Sans anomalie : variantes de chemin (casse, zéros, `%2F..`, double barre), changement de verbe et en-tête de surcharge, clés JSON en double, champs en trop (`status: approved` ignoré), persona hors liste.
 
