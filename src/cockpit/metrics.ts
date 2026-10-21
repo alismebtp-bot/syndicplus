@@ -17,6 +17,9 @@ export const DECISION_ALERT_DAYS = 7;
 export const isOpen = (d: CDossier) => d.status !== CLOSED_STATUS;
 export const ref = (num: number) => `D-${num}`;
 const today = (now: number) => new Date(now).toISOString().slice(0, 10);
+/** AAAA-MM-JJ → JJ/MM/AAAA (dates affichées en français). */
+export const fr = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
+const frMs = (ms: number) => fr(new Date(ms).toISOString());
 const euros = (n: number) => `${new Intl.NumberFormat('fr-FR').format(n).replace(/ | /g, ' ')} € HT`;
 
 // ---------- Personnes et absences ----------
@@ -37,8 +40,8 @@ export function effectiveOwner(s: Snapshot, d: CDossier): { id: string | null; n
   const abs = currentAbsence(s, d.assigneeId);
   const name = userName(s, d.assigneeId) ?? 'Inconnu';
   if (!abs) return { id: d.assigneeId, name, note: null };
-  if (abs.replacementId) return { id: abs.replacementId, name: userName(s, abs.replacementId) ?? 'Inconnu', note: `Remplace ${name} (absent jusqu’au ${abs.endsOn})` };
-  return { id: d.assigneeId, name, note: `Absent jusqu’au ${abs.endsOn}, sans remplaçant désigné` };
+  if (abs.replacementId) return { id: abs.replacementId, name: userName(s, abs.replacementId) ?? 'Inconnu', note: `Remplace ${name} (absent jusqu’au ${fr(abs.endsOn)})` };
+  return { id: d.assigneeId, name, note: `Absent jusqu’au ${fr(abs.endsOn)}, sans remplaçant désigné` };
 }
 
 // ---------- Récurrences (moteur d'automatisation existant, par copropriété) ----------
@@ -86,7 +89,7 @@ export function dossierFlags(s: Snapshot, d: CDossier, recurringNums: Set<number
   if (open && !d.assigneeId) add('unassigned', 'Aucun gestionnaire affecté');
   if (open && d.assigneeId) {
     const abs = currentAbsence(s, d.assigneeId);
-    if (abs && !abs.replacementId) add('owner_absent', `${userName(s, d.assigneeId)} absent jusqu’au ${abs.endsOn}, sans remplaçant`);
+    if (abs && !abs.replacementId) add('owner_absent', `${userName(s, d.assigneeId)} absent jusqu’au ${fr(abs.endsOn)}, sans remplaçant`);
   }
   const failed = s.interventions.filter((i) => i.dossierNum === d.num && i.status === 'failed').length;
   if (open && failed) add('failed_intervention', `${failed} intervention${failed > 1 ? 's' : ''} sans résolution`);
@@ -208,9 +211,9 @@ export function attention(s: Snapshot, views = allDossierViews(s)): AttentionIte
     items.push({
       id: `absence-${m.id}`, severity: mine.some((v) => flag(v, 'urgent') || flag(v, 'late')) ? 'high' : 'medium',
       title: `${m.name} absent(e) sans remplaçant`,
-      justification: `Absence du ${a.startsOn} au ${a.endsOn}. ${mine.length} dossier${mine.length > 1 ? 's' : ''} ouvert${mine.length > 1 ? 's' : ''} sans suivi assuré.`,
+      justification: `Absence du ${fr(a.startsOn)} au ${fr(a.endsOn)}. ${mine.length} dossier${mine.length > 1 ? 's' : ''} ouvert${mine.length > 1 ? 's' : ''} sans suivi assuré.`,
       dossiers: mine.map((v) => v.ref), action: { kind: 'set_replacement', label: 'Désigner un remplaçant', target: m.id },
-      responsible: 'Vous (responsable de cabinet)', lastUpdate: Math.max(...mine.map((v) => v.updatedAt)), sources: [`Absence enregistrée (${a.startsOn} → ${a.endsOn})`, ...mine.map((v) => `Dossier ${v.ref}`)],
+      responsible: 'Vous (responsable de cabinet)', lastUpdate: Math.max(...mine.map((v) => v.updatedAt)), sources: [`Absence enregistrée (${fr(a.startsOn)} → ${fr(a.endsOn)})`, ...mine.map((v) => `Dossier ${v.ref}`)],
     });
   }
   for (const v of open) {
@@ -266,7 +269,7 @@ export function attention(s: Snapshot, views = allDossierViews(s)): AttentionIte
       id: `decision-${d.id}`, severity: 'medium', title: `Décision en attente depuis ${fmtDuration(s.now - d.preparedAt)}`,
       justification: `${d.label}${d.amountHt !== null ? ` (${euros(d.amountHt)})` : ''}. Autorité : ${d.authority}.`,
       dossiers: [ref(d.dossierNum)], action: { kind: 'request_update', label: 'Demander où en est la décision', target: ref(d.dossierNum) },
-      responsible: v?.owner.name ?? '—', lastUpdate: d.preparedAt, sources: [`Décision préparée le ${new Date(d.preparedAt).toISOString().slice(0, 10)}`],
+      responsible: v?.owner.name ?? '—', lastUpdate: d.preparedAt, sources: [`Décision préparée le ${frMs(d.preparedAt)}`],
     });
   }
   for (const r of recurrences(s)) {
@@ -282,7 +285,7 @@ export function attention(s: Snapshot, views = allDossierViews(s)): AttentionIte
   for (const c of contractStatus(s).filter((c) => c.state !== 'running')) {
     items.push({
       id: `contract-${c.id}`, severity: c.state === 'notice_passed' ? 'medium' : 'medium', title: `Contrat à revoir : ${c.label}`,
-      justification: `${c.coproName} — ${c.providerName}. Fin le ${c.endsOn} ; ${c.stateLabel}.`,
+      justification: `${c.coproName} — ${c.providerName}. Fin le ${fr(c.endsOn)} ; ${c.stateLabel}.`,
       dossiers: [], action: { kind: 'schedule_review', label: 'Programmer une revue', target: `contract:${c.id}` },
       responsible: c.managerName ?? 'Gestionnaire non renseigné', lastUpdate: null, sources: [c.documentRef || 'Contrat (référence non renseignée)'],
     });
@@ -302,7 +305,7 @@ export function attention(s: Snapshot, views = allDossierViews(s)): AttentionIte
       id: `satisfaction-${q.dossierNum}`, severity: 'medium', title: `${v.ref} : retour résident défavorable`,
       justification: `Note ${q.score}/5${q.consent && q.comment ? ` — « ${q.comment} »` : ''}. Dossier ${v.open ? 'ouvert' : 'clôturé administrativement'}${v.flags.some((f) => f.code === 'contested') ? ', rouvert ou contesté' : ''}.`,
       dossiers: [v.ref], action: { kind: 'request_verification', label: 'Demander une vérification sur place', target: v.ref },
-      responsible: v.owner.name, lastUpdate: q.collectedAt, sources: [`Questionnaire de satisfaction du ${new Date(q.collectedAt).toISOString().slice(0, 10)}`],
+      responsible: v.owner.name, lastUpdate: q.collectedAt, sources: [`Questionnaire de satisfaction du ${frMs(q.collectedAt)}`],
     });
   }
   // Urgences d'abord, puis autres points prioritaires, puis le reste (le plus ancien d'abord)
@@ -421,10 +424,10 @@ export function contractStatus(s: Snapshot) {
     const noticeDeadline = end - c.noticeDays * DAY;
     const copro = s.copros.find((x) => x.id === c.coproId);
     let state: 'expired' | 'notice_passed' | 'notice_soon' | 'running' = 'running';
-    let stateLabel = `en cours ; préavis à donner avant le ${new Date(noticeDeadline).toISOString().slice(0, 10)}`;
+    let stateLabel = `en cours ; préavis à donner avant le ${frMs(noticeDeadline)}`;
     if (end < s.now) { state = 'expired'; stateLabel = 'contrat échu'; }
-    else if (noticeDeadline < s.now) { state = 'notice_passed'; stateLabel = `date limite de préavis dépassée (${new Date(noticeDeadline).toISOString().slice(0, 10)}) : vérifier la reconduction`; }
-    else if (noticeDeadline - s.now < 60 * DAY) { state = 'notice_soon'; stateLabel = `préavis à donner avant le ${new Date(noticeDeadline).toISOString().slice(0, 10)}`; }
+    else if (noticeDeadline < s.now) { state = 'notice_passed'; stateLabel = `date limite de préavis dépassée (${frMs(noticeDeadline)}) : vérifier la reconduction`; }
+    else if (noticeDeadline - s.now < 60 * DAY) { state = 'notice_soon'; stateLabel = `préavis à donner avant le ${frMs(noticeDeadline)}`; }
     return {
       id: c.id, coproId: c.coproId, coproName: copro?.name ?? '—', managerName: userName(s, copro?.managerId ?? null),
       providerName: s.providers.find((p) => p.id === c.providerId)?.name ?? '—', label: c.label, startsOn: c.startsOn, endsOn: c.endsOn,
@@ -470,7 +473,7 @@ export function providers(s: Snapshot) {
     for (const i of iv.filter((x) => x.status === 'failed')) failedByDossier.set(i.dossierNum, (failedByDossier.get(i.dossierNum) ?? 0) + 1);
     for (const [num, n] of failedByDossier) observations.push(`${n} intervention${n > 1 ? 's' : ''} sans résolution sur ${ref(num)} — causes possibles : pièce, accès, diagnostic ; à vérifier avec le gestionnaire.`);
     const waiting = iv.filter((i) => i.status === 'requested' && i.respondedAt === null);
-    for (const w of waiting) observations.push(`Demande du ${new Date(w.requestedAt).toISOString().slice(0, 10)} (${ref(w.dossierNum)}) sans réponse enregistrée depuis ${fmtDuration(s.now - w.requestedAt)}.`);
+    for (const w of waiting) observations.push(`Demande du ${frMs(w.requestedAt)} (${ref(w.dossierNum)}) sans réponse enregistrée depuis ${fmtDuration(s.now - w.requestedAt)}.`);
     const openRes = reserves.filter((r) => r.liftedAt === null);
     if (openRes.length >= 2) observations.push(`${openRes.length} réserves non levées (${[...new Set(openRes.map((r) => ref(r.dossierNum)))].join(', ')}).`);
     return {
@@ -577,7 +580,7 @@ export function assistant(s: Snapshot, q: QuestionId): AssistantAnswer {
       return {
         ...base,
         summary: uncovered.length ? `${uncovered.length} absence${uncovered.length > 1 ? 's' : ''} sans remplaçant : ${uncovered.map((m) => m.name).join(', ')}.` : 'Aucune absence non couverte aujourd’hui.',
-        facts: t.managers.map((m) => fact(`${m.name} : ${m.open} dossier${m.open > 1 ? 's' : ''} ouvert${m.open > 1 ? 's' : ''} (${m.urgent} urgence${m.urgent > 1 ? 's' : ''}, ${m.late} en retard)${m.absence ? ` — absent(e) du ${m.absence.startsOn} au ${m.absence.endsOn}${m.absence.replacementName ? `, remplacé(e) par ${m.absence.replacementName}` : ', sans remplaçant'}` : ''}`, 'Affectations des dossiers et absences enregistrées')),
+        facts: t.managers.map((m) => fact(`${m.name} : ${m.open} dossier${m.open > 1 ? 's' : ''} ouvert${m.open > 1 ? 's' : ''} (${m.urgent} urgence${m.urgent > 1 ? 's' : ''}, ${m.late} en retard)${m.absence ? ` — absent(e) du ${fr(m.absence.startsOn)} au ${fr(m.absence.endsOn)}${m.absence.replacementName ? `, remplacé(e) par ${m.absence.replacementName}` : ', sans remplaçant'}` : ''}`, 'Affectations des dossiers et absences enregistrées')),
         confidence: { level: 'moyenne', reason: 'Le nombre de dossiers ne mesure pas leur complexité ; à compléter par un échange avec l’équipe.' },
         recommendations: uncovered.length ? ['Désigner un remplaçant ou réaffecter les dossiers urgents'] : [],
         nextAction: uncovered[0] ? { kind: 'set_replacement', label: `Désigner un remplaçant pour ${uncovered[0].name}`, target: uncovered[0].id } : null,

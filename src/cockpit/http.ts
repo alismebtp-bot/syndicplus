@@ -8,7 +8,7 @@ import { parseDossierAction, parseReplacement, parseReview } from './actions';
 import { loadSnapshot, type Snapshot } from './data';
 import { clearSessionCookie, demoIdentityEnabled, getPrincipal, sessionCookie, type Principal } from './identity';
 import {
-  ASSISTANT_QUESTIONS, allDossierViews, assistant, coproDetail, currentAbsence, effectiveOwner, finance, financeChains, nextAbsence,
+  ASSISTANT_QUESTIONS, allDossierViews, fr, assistant, coproDetail, currentAbsence, effectiveOwner, finance, financeChains, nextAbsence,
   overview, portfolio, providers, quality, ref, team, userName, type QuestionId,
 } from './metrics';
 import { canReassign, canSetReplacement, canSupervise, type TargetUser } from './policy';
@@ -232,10 +232,10 @@ async function dossierAction(db: D1Database, p: Principal, s: Snapshot, num: num
     }
     case 'schedule_review': {
       ops.push(db.prepare('INSERT INTO reviews (cabinet_id,entity,entity_id,due_on,note,created_by) VALUES (?,?,?,?,?,?)').bind(p.cabinetId, 'dossier', String(num), a.dueOn, a.note, p.userId));
-      ops.push(history(db, p, num, `Revue programmée par ${p.name} le ${a.dueOn}${a.note ? ` : ${a.note}` : ''}`));
+      ops.push(history(db, p, num, `Revue programmée par ${p.name} le ${fr(a.dueOn)}${a.note ? ` : ${a.note}` : ''}`));
       ops.push(audit(db, p, 'schedule_review', 'dossier', r, `${a.dueOn}${a.note ? ` — ${a.note}` : ''}`));
-      tell(followUp, 'review', `${p.name} a programmé une revue de ${r} le ${a.dueOn}${a.note ? ` : ${a.note}` : ''}`);
-      message = `Revue programmée le ${a.dueOn} (rappel interne, aucune invitation envoyée).`;
+      tell(followUp, 'review', `${p.name} a programmé une revue de ${r} le ${fr(a.dueOn)}${a.note ? ` : ${a.note}` : ''}`);
+      message = `Revue programmée le ${fr(a.dueOn)} (rappel interne, aucune invitation envoyée).`;
       break;
     }
   }
@@ -258,21 +258,21 @@ async function setReplacement(db: D1Database, p: Principal, s: Snapshot, userId:
   const replName = userName(s, parsed.value.replacement);
   const ops: D1PreparedStatement[] = [
     db.prepare('UPDATE absences SET replacement_user_id = ? WHERE id = ?').bind(parsed.value.replacement, absence.id),
-    audit(db, p, 'set_replacement', 'absence', String(absence.id), `${absentName} (${absence.startsOn} → ${absence.endsOn}) : remplaçant ${replName ?? 'retiré'}`),
+    audit(db, p, 'set_replacement', 'absence', String(absence.id), `${absentName} (${fr(absence.startsOn)} → ${fr(absence.endsOn)}) : remplaçant ${replName ?? 'retiré'}`),
   ];
   const notified: string[] = [];
   if (parsed.value.replacement) {
-    ops.push(notify(db, p, parsed.value.replacement, null, 'replacement', `${p.name} vous désigne remplaçant(e) de ${absentName} du ${absence.startsOn} au ${absence.endsOn}.`));
+    ops.push(notify(db, p, parsed.value.replacement, null, 'replacement', `${p.name} vous désigne remplaçant(e) de ${absentName} du ${fr(absence.startsOn)} au ${fr(absence.endsOn)}.`));
     notified.push(replName!);
   }
-  ops.push(notify(db, p, userId, null, 'replacement', replName ? `${p.name} a désigné ${replName} pour vous remplacer du ${absence.startsOn} au ${absence.endsOn}.` : `${p.name} a retiré le remplaçant de votre absence.`));
+  ops.push(notify(db, p, userId, null, 'replacement', replName ? `${p.name} a désigné ${replName} pour vous remplacer du ${fr(absence.startsOn)} au ${fr(absence.endsOn)}.` : `${p.name} a retiré le remplaçant de votre absence.`));
   notified.push(absentName);
   // Historique des dossiers ouverts concernés
   for (const d of s.dossiers.filter((x) => x.assigneeId === userId && x.status !== 'Résolu')) {
     ops.push(history(db, p, d.num, replName ? `Suivi assuré par ${replName} pendant l’absence de ${absentName} (désigné par ${p.name})` : `Remplaçant retiré par ${p.name}`));
   }
   await db.batch(ops);
-  return json({ ok: true, message: replName ? `${replName} remplace ${absentName} du ${absence.startsOn} au ${absence.endsOn}. Personnes informées : ${notified.join(', ')}.` : 'Remplaçant retiré.' });
+  return json({ ok: true, message: replName ? `${replName} remplace ${absentName} du ${fr(absence.startsOn)} au ${fr(absence.endsOn)}. Personnes informées : ${notified.join(', ')}.` : 'Remplaçant retiré.' });
 }
 
 async function addReview(db: D1Database, p: Principal, s: Snapshot, body: unknown, json: Json): Promise<Response> {
@@ -288,7 +288,7 @@ async function addReview(db: D1Database, p: Principal, s: Snapshot, body: unknow
     db.prepare('INSERT INTO reviews (cabinet_id,entity,entity_id,due_on,note,created_by) VALUES (?,?,?,?,?,?)').bind(p.cabinetId, v.entity, v.entityId, v.dueOn, v.note, p.userId),
     audit(db, p, 'schedule_review', v.entity, v.entityId, `${found} — ${v.dueOn}${v.note ? ` — ${v.note}` : ''}`),
   ]);
-  return json({ ok: true, message: `Revue programmée le ${v.dueOn} : ${found} (rappel interne, aucune invitation envoyée).` });
+  return json({ ok: true, message: `Revue programmée le ${fr(v.dueOn)} : ${found} (rappel interne, aucune invitation envoyée).` });
 }
 
 // ---------------- Lectures détaillées ----------------
