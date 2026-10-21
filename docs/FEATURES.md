@@ -21,6 +21,16 @@ _Dernière mise à jour : Sprint 0 (v0.3)._
 | Regroupement des signalements en double | **Prévu** | Sprint 3 (proposition IA, validation humaine) |
 | Clôture vérifiée avec rapport | **Prévu** | Sprint 2–3 |
 
+## Moteur de parcours (P1–P6)
+
+| Élément | Statut | Détail |
+|---|---|---|
+| Choix du parcours P1–P6 (36 scénarios + autre), bascule P5 sur danger | **Fonctionnel (calcul)** | `src/procedures/engine.ts`, 150+ tests ; API `/api/procedures/route` |
+| Fiche de configuration de l'immeuble (gardien, horaires, remplaçant, contrats, préautorisations, président, astreinte) | **Fonctionnel (validation et calcul)** | Pas encore enregistrée en base : fournie avec chaque requête ou fiche de démonstration |
+| Suite si le gardien ne peut pas résoudre (plafond préautorisé vérifié) | **Fonctionnel (calcul)** | Aucune commande réelle |
+| Permissions du président du CS, comparaison de devis | **Fonctionnel (calcul)** | Aucune demande de devis réellement envoyée |
+| Notifications (urgence, président, gardien) | **Simulé** | Le moteur indique qui prévenir ; aucun envoi |
+
 ## Interface résident
 
 | Élément | Statut | Détail |
