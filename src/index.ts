@@ -80,7 +80,7 @@ async function handleApi(request: Request, env: Env, path: string): Promise<Resp
 export default {
   async fetch(request, env): Promise<Response> {
     const path = new URL(request.url).pathname;
-    if (!path.startsWith('/api/')) return env.ASSETS.fetch(request);
+    if (!path.startsWith('/api/')) return env.ASSETS.fetch(request); // en-têtes de sécurité : public/_headers
     try {
       return await handleApi(request, env, path);
     } catch (e) {

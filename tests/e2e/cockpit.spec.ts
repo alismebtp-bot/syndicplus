@@ -162,3 +162,30 @@ test('mobile : navigation basse et menu « Plus »', async ({ page }, info) => {
   const box = await nav.getByRole('link', { name: /Accueil/ }).boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
 });
+
+test('un texte piégé enregistré est affiché comme du texte, sans violation de la politique de sécurité', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'Écriture testée une seule fois');
+  const violations: string[] = [];
+  page.on('console', (m) => { if (/Content Security Policy|Refused to/.test(m.text())) violations.push(m.text()); });
+  page.on('dialog', (d) => { violations.push('dialog ' + d.message()); void d.dismiss(); });
+  await loginAs(page, 'dir_lea');
+  await nav(page, '#/incidents/D-9002');
+  await page.locator('[data-do="request_update"]').click();
+  await page.locator('dialog textarea[name=message]').fill('<img src=x onerror=alert(1)>');
+  await page.locator('#dlg-ok').click();
+  await expect(page.locator('#toast')).toBeVisible();
+  await ready(page);
+  await expect(page.locator('.hist li').first()).toContainText('<img src=x onerror=alert(1)>');
+  expect(await page.locator('.hist img').count()).toBe(0);
+  expect(violations).toEqual([]);
+});
+
+test('en-têtes de sécurité : aucune page ne peut être affichée dans un cadre ; politique stricte pour le cockpit', async ({ request }) => {
+  const home = await request.get('/');
+  expect(home.headers()['x-frame-options']).toBe('DENY');
+  expect(home.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
+  const cockpit = await request.get('/cabinet/');
+  expect(cockpit.headers()['content-security-policy']).toContain("script-src 'self'");
+  expect(cockpit.headers()['cache-control']).toBe('no-store');
+  expect((await request.get('/_headers')).status()).not.toBe(200);
+});
