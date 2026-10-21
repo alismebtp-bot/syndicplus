@@ -6,6 +6,8 @@ export interface ProcedureInput {
   kind: IncidentKind;
   danger: boolean;
   guardianAvailable: boolean;
+  /** Distinguishes actual working hours from mere presence in the building. */
+  guardianOnDuty?: boolean;
   guardianScopeIncludesCheck: boolean;
   /** Permission explicite : petit entretien non dangereux dans les missions du gardien. */
   guardianCanRepair?: boolean;
@@ -22,14 +24,20 @@ export interface RouteProposal {
   requiresHumanReview: boolean;
   guardianCanCompleteLocally?: boolean;
   onGuardianCannotResolve?: 'contractor_after_manager_approval' | 'manager_review';
+  urgentNotifications?: readonly ('manager' | 'council_president' | 'guardian')[];
 }
 export function proposeRoute(input: ProcedureInput): RouteProposal {
   if (input.danger || input.kind === 'major_leak') {
     return {
       firstActor: 'emergency',
       notify: ['council_priority', 'affected_residents'],
+      urgentNotifications: input.guardianAvailable && input.guardianOnDuty !== false
+        ? ['manager', 'council_president', 'guardian']
+        : ['manager', 'council_president'],
       decisionRequiredFrom: 'manager',
-      nextAction: 'Appliquer immédiatement la procédure de sécurité configurée et alerter le syndic ; ne pas attendre le gardien.',
+      nextAction: input.guardianAvailable && input.guardianOnDuty !== false
+        ? 'Déclencher la procédure d’urgence sans délai, alerter simultanément gardien en service, gestionnaire et président du conseil syndical ; intervention qualifiée si nécessaire.'
+        : 'Déclencher la procédure d’urgence sans délai, prévenir gestionnaire et président du conseil syndical ; appliquer le relais/astreinte défini en l’absence du gardien.',
       fallbackActor: 'manager',
       reason: ['Danger ou dommages majeurs possibles : escalade prioritaire'],
       requiresHumanReview: true,
