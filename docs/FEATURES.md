@@ -45,6 +45,11 @@ Données fictives dans le navigateur ; le **choix du circuit** est calculé par 
 | « Votre journée » du gestionnaire : urgences, décisions, suivis automatiques repliés | **Fonctionnel (démo locale)** | |
 | Fiche de l'immeuble éditable (gardien, remplaçant, contrats, préautorisations, président, astreinte) | **Fonctionnel (démo locale)** | Validée par le serveur ; enregistrée dans le navigateur, pas en base |
 | Vérification par le vérificateur désigné, réserves, reprise, clôture | **Fonctionnel (démo locale)** | |
+| Président CS : constat, demande de vérification au gardien | **Fonctionnel (démo locale)** | Ajouté à l'historique ; aucun envoi |
+| Président CS : demande de devis aux entreprises (selon délégation) | **Simulé** pour l'envoi | Permission vérifiée par le serveur ; aucune demande réellement envoyée |
+| Président CS : devis reçus, comparaison, avis consultatif | **Fonctionnel (démo locale)** | Comparaison calculée par le serveur, sans attributaire ; l'avis ne vaut pas décision |
+| Président CS : autorisation de dépense | **Fonctionnel (démo locale)** | Uniquement avec délégation vérifiée et dans le plafond ; la commande reste au gestionnaire |
+| Gestionnaire : retenir une entreprise et commander | **Simulé** pour la commande | Aucune commande réelle |
 
 ## Interface résident
 
