@@ -15,7 +15,7 @@ async function open(page: Page, mutate?: (c: Config) => void) {
   mutate?.(c);
   await page.addInitScript(([k, v]) => localStorage.setItem(k, v), [CONFIG_KEY, JSON.stringify(c)] as const);
   await page.goto('/demo-lab.html');
-  await page.waitForSelector('#issue-type option', { state: 'attached' });
+  await page.waitForSelector('body[data-ready="true"]');
 }
 
 const tab = (page: Page, id: string) => page.locator(`#${id}-tab`).click();
@@ -170,10 +170,10 @@ test.describe('P3 — diagnostic, consultation, vérification par le président,
     await open(page);
     await report(page, { type: 'infiltration_toiture', location: 'Dernier étage, cage B', description: 'Traces d’humidité au plafond depuis une semaine' });
     await tab(page, 'council');
-    await expect(page.locator('#council-cases')).toContainText('Vous êtes associé(e) à ce dossier');
+    await expect(page.locator('#council-cases')).toContainText('Recueillez et comparez les devis');
     await tab(page, 'manager');
     await btn(page, 'Lancer une consultation (devis)').click();
-    await btn(page, 'Affecter après consultation (simulation)').click();
+    await btn(page, 'Affecter sans devis (simulation)').click();
     await technicianCompletes(page);
     await tab(page, 'manager');
     await expect(btn(page, 'Clôturer administrativement')).toHaveCount(0);

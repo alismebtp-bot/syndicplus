@@ -52,6 +52,7 @@
   let demoConfig = null;
   let catalog = null;
   let current = 'resident';
+  let perms = {};
 
   // ---------- Utilitaires d'affichage (textContent uniquement) ----------
   function el(tag, text, cls) { const e = document.createElement(tag); if (text !== undefined && text !== null) e.textContent = text; if (cls) e.className = cls; return e; }
@@ -69,6 +70,12 @@
     return data;
   }
 
+  async function loadPerms() {
+    const actions = ['request_quote', 'compare_and_advise', 'confirm_apparent_completion'];
+    const results = await Promise.all(actions.map((action) => api('/api/procedures/president-permission', { action, config }).then((r) => r.permission).catch(() => ({ allowed: false, reason: 'Vérification des délégations indisponible.' }))));
+    perms = Object.fromEntries(actions.map((a, i) => [a, results[i]]));
+  }
+
   // ---------- Rôles ----------
   function role(name) {
     current = name;
@@ -78,7 +85,10 @@
     }
     const slot = byId(name).querySelector('.report-slot');
     if (slot) slot.append(byId('report-box'));
-    if (name === 'building') renderBuilding();
+    if (name === 'building') {
+      if (config) renderBuilding();
+      else byId('building-form').replaceChildren(el('p', 'Chargement de la fiche…', 'empty'));
+    }
   }
   for (const r of ROLES) byId(r + '-tab').addEventListener('click', () => role(r));
 
@@ -267,9 +277,15 @@
   function guardianView(host) {
     const g = config?.guardian;
     byId('guardian-sub').textContent = g ? `${g.name} — constats sans risque${g.canSmallRepair ? ' et petit entretien prévu dans vos missions' : ''}.` : 'Aucun gardien renseigné dans la fiche de l’immeuble.';
-    const mine = cases.filter((d) => ['guardian', 'guardian_active'].includes(d.status) || (d.status === 'emergency' && guardianNotified(d)) || (d.requiredVerifier === 'guardian' && ['verification', 'reserved'].includes(d.status)));
+    const mine = cases.filter((d) => d.checkRequest?.open || ['guardian', 'guardian_active'].includes(d.status) || (d.status === 'emergency' && guardianNotified(d)) || (d.requiredVerifier === 'guardian' && ['verification', 'reserved'].includes(d.status)));
     if (!mine.length) { host.append(el('p', 'Rien à faire pour le moment.', 'empty')); return; }
     for (const d of mine) {
+      if (d.checkRequest?.open && !['guardian', 'guardian_active', 'emergency'].includes(d.status) && !(d.requiredVerifier === 'guardian' && ['verification', 'reserved'].includes(d.status))) {
+        const w = card(d, 'Le président du conseil syndical demande une vérification sur place, sans prendre de risque.', 'Votre constat est ajouté au dossier.');
+        const text = el('textarea'); text.maxLength = 1000; text.setAttribute('aria-label', 'Constat du gardien'); w.append(field('Votre constat', text));
+        actions(w, button('Constat effectué', () => { d.checkRequest = { ...d.checkRequest, open: false }; log(d, 'Gardien : constat effectué à la demande du président' + (text.value.trim() ? ' — ' + text.value.trim().slice(0, 1000) : '')); persist(); render(); }));
+        history(w, d); host.append(w); continue;
+      }
       if (d.status === 'emergency') {
         const w = card(d, 'Urgence : appliquez les consignes de sécurité sans vous exposer.', 'Le gestionnaire et le président du CS sont prévenus en parallèle.');
         w.append(el('p', d.decision.nextAction, 'alert'));
@@ -332,8 +348,15 @@
       why(w, d); history(w, d); return w;
     }
     if (d.status === 'quotes') {
-      const w = card(d, 'Consultation en cours : examiner les devis, puis décider.', 'La décision et la commande relèvent du gestionnaire ou de l’instance habilitée.');
-      actions(w, button('Affecter après consultation (simulation)', () => { d.contractor = { provider: 'Entreprise retenue (simulation)' }; setStatus(d, 'assigned', 'Gestionnaire : entreprise retenue après consultation (simulation)'); }));
+      const has = Boolean(d.quotes?.length);
+      const w = card(d, has ? 'Examinez la comparaison et l’avis consultatif, puis retenez une entreprise.' : 'Consultation ouverte : en attente des devis (le président du CS peut les recueillir).', 'La commande relève de vous ; la vérification sur place suivra les travaux.');
+      comparisonBlock(w, d);
+      if (d.advice) w.append(adviceBox(d));
+      if (d.presidentAuthorization) w.append(el('p', `Autorisé par le président dans sa délégation (${d.presidentAuthorization.reference}) : ${d.presidentAuthorization.company}, ${d.presidentAuthorization.amountHT} € HT. La commande reste à passer par vous.`, 'msg-ok'));
+      actions(w,
+        ...(d.quotes || []).map((q) => button(`Retenir ${q.company} et commander`, () => { d.contractor = { provider: q.company }; d.retainedQuote = q; setStatus(d, 'assigned', `Gestionnaire : ${q.company} retenue (${q.amountHT} € HT), commande passée (simulation)`); }, 'secondary')),
+        has ? null : button('Affecter sans devis (simulation)', () => { d.contractor = { provider: 'Prestataire choisi par le gestionnaire' }; setStatus(d, 'assigned', 'Gestionnaire : prestataire affecté sans consultation (simulation)'); }, 'secondary'),
+      );
       history(w, d); return w;
     }
     if (d.status === 'guardian_done') {
@@ -407,22 +430,161 @@
   }
 
   // ---------- Président du conseil syndical ----------
-  function councilView(host) {
-    const informed = cases.filter((d) => d.status !== 'closed' && d.decision && (d.decision.notify.includes('council_president') || d.decision.councilRole !== 'none'));
-    const verify = cases.filter((d) => d.requiredVerifier === 'council' && ['verification', 'reserved', 'verified', 'closed'].includes(d.status));
-    const list = [...new Set([...verify, ...informed])];
-    if (!list.length) { host.append(el('p', 'Aucun dossier ne vous concerne pour le moment.', 'empty')); return; }
-    for (const d of list) {
-      if (d.requiredVerifier === 'council' && ['verification', 'reserved'].includes(d.status)) {
-        const w = card(d, 'Vérifiez sur place la bonne exécution apparente (ce n’est pas une réception juridique).', 'Conforme : le gestionnaire clôture. Réserves : la clôture est bloquée.');
-        if (d.techReport) w.append(el('p', 'Compte rendu du technicien : ' + d.techReport, 'small'));
-        actions(w, ...verificationButtons(d, 'council'));
-        history(w, d); host.append(w); continue;
-      }
-      const consult = d.decision?.councilRole === 'consultation' && ['manager_decision', 'quotes'].includes(d.status);
-      const w = card(d, d.status === 'emergency' ? 'Information d’urgence : aucune action requise de votre part.' : consult ? 'Vous êtes associé(e) à ce dossier : constats, devis et avis selon vos délégations.' : null, nextStepText(d) || (d.status === 'manager_decision' ? 'Décision attendue du gestionnaire.' : ''));
-      history(w, d); host.append(w);
+  // Séparation stricte : constat et avis (consultatifs) ≠ demande de devis (n'engage pas) ≠ autorisation (délégation vérifiée) ≠ commande (gestionnaire).
+  function comparisonBlock(wrap, d) {
+    const c = d.comparison;
+    if (!c || !c.rows.length) return;
+    const box = el('div', undefined, 'quotes');
+    box.append(el('strong', `Comparaison de ${c.rows.length} devis (indicative)`));
+    for (const r of c.rows) {
+      const row = el('div', undefined, 'quote-row');
+      row.append(el('b', r.company));
+      row.append(el('span', `${r.amountHT.toLocaleString('fr-FR')} € HT · ${r.amountTTC.toLocaleString('fr-FR')} € TTC · ${r.delayDays === null ? 'délai non précisé' : r.delayDays + ' j'}`));
+      const tags = el('div', undefined, 'meta');
+      if (r.lowestPrice) tags.append(el('span', 'Prix le plus bas', 'chip ok'));
+      if (r.shortestDelay) tags.append(el('span', 'Délai le plus court', 'chip ok'));
+      if (r.missing.length) tags.append(el('span', 'À compléter : ' + r.missing.join(', '), 'chip warn'));
+      row.append(tags);
+      box.append(row);
     }
+    for (const n of c.notes) box.append(el('p', n, 'small'));
+    wrap.append(box);
+  }
+
+  function adviceBox(d) {
+    const b = el('div', undefined, 'todo');
+    b.append(el('b', 'Avis consultatif du président'), el('span', d.advice.text + (d.advice.preferred ? ` — préférence : ${d.advice.preferred}` : '')));
+    b.append(el('p', 'Cet avis ne vaut ni décision du conseil syndical ni attribution du marché.', 'small'));
+    return b;
+  }
+
+  async function addQuote(d, fields, msg) {
+    const amountHT = Number(fields.amount.value);
+    const company = fields.company.value.trim();
+    if (!company || fields.amount.value === '' || !Number.isFinite(amountHT) || amountHT < 0) { msg.textContent = 'Indiquez l’entreprise et un montant HT valide.'; return; }
+    const q = { company: company.slice(0, 120), amountHT, vatRate: Number(fields.vat.value), delayDays: fields.delay.value === '' ? null : Number(fields.delay.value), scope: fields.scope.value.trim().slice(0, 500), warranty: fields.warranty.value.trim().slice(0, 200) };
+    try {
+      const quotes = [...(d.quotes || []).filter((x) => x.company !== q.company), q];
+      const { comparison } = await api('/api/procedures/compare-quotes', { quotes });
+      d.quotes = quotes; d.comparison = comparison;
+      if (d.status === 'manager_decision') d.status = 'quotes';
+      log(d, `Devis reçu et enregistré par le président : ${q.company}, ${q.amountHT} € HT`);
+      persist(); render();
+    } catch (err) { msg.textContent = 'Comparaison indisponible : ' + err.message; }
+  }
+
+  function quoteTools(wrap, d) {
+    const box = el('div', undefined, 'tech-summary');
+    const msg = el('p', '', 'small');
+    // Demande de devis
+    box.append(el('strong', '1. Solliciter des entreprises'));
+    if (perms.request_quote?.allowed) {
+      const company = textInput('', 'Entreprise à solliciter');
+      const row = el('div', undefined, 'inline'); row.append(field('Entreprise à solliciter', company));
+      row.append(button('Demander un devis', () => {
+        const name = company.value.trim();
+        if (!name) { msg.textContent = 'Indiquez le nom de l’entreprise.'; return; }
+        d.quoteRequests = [...(d.quoteRequests || []), { company: name.slice(0, 120), at: now() }];
+        if (d.status === 'manager_decision') d.status = 'quotes';
+        log(d, `Demande de devis adressée à ${name} par le président (simulation : aucun envoi, n’engage pas la copropriété)`);
+        persist(); render();
+      }, 'secondary'));
+      box.append(row);
+      if (d.quoteRequests?.length) box.append(el('p', 'Sollicitées : ' + d.quoteRequests.map((r) => r.company).join(', '), 'small'));
+    } else box.append(el('p', perms.request_quote?.reason || 'Demande de devis non prévue par la fiche.', 'small'));
+    // Devis reçus
+    box.append(el('strong', '2. Enregistrer un devis reçu'));
+    const f = { company: textInput('', 'Entreprise du devis'), amount: numberInput('', 'Montant HT du devis'), vat: el('select'), delay: numberInput('', 'Délai en jours'), scope: textInput('', 'Périmètre des travaux'), warranty: textInput('', 'Garanties') };
+    f.vat.setAttribute('aria-label', 'Taux de TVA');
+    for (const v of ['10', '20', '5.5']) { const o = el('option', v + ' %'); o.value = v; f.vat.append(o); }
+    const g = el('div', undefined, 'grid2');
+    g.append(field('Entreprise', f.company), field('Montant (€ HT)', f.amount), field('TVA', f.vat), field('Délai (jours)', f.delay), field('Périmètre', f.scope), field('Garanties', f.warranty));
+    const saveQuote = button('Enregistrer le devis reçu', async () => { saveQuote.disabled = true; try { await addQuote(d, f, msg); } finally { saveQuote.disabled = false; } }, 'secondary');
+    box.append(g, saveQuote);
+    comparisonBlock(box, d);
+    // Avis
+    if (d.quotes?.length) {
+      box.append(el('strong', '3. Donner un avis consultatif'));
+      if (d.advice) box.append(adviceBox(d));
+      if (perms.compare_and_advise?.allowed) {
+        const text = el('textarea'); text.maxLength = 1000; text.setAttribute('aria-label', 'Avis consultatif');
+        const pref = el('select'); pref.setAttribute('aria-label', 'Préférence');
+        for (const v of ['', ...d.quotes.map((q) => q.company)]) { const o = el('option', v || 'Sans préférence'); o.value = v; pref.append(o); }
+        box.append(field('Votre avis', text), field('Préférence (facultatif)', pref));
+        box.append(button(d.advice ? 'Modifier l’avis transmis' : 'Transmettre l’avis au gestionnaire', () => {
+          if (!text.value.trim()) { msg.textContent = 'Rédigez votre avis.'; return; }
+          d.advice = { text: text.value.trim().slice(0, 1000), preferred: pref.value };
+          log(d, 'Avis consultatif du président transmis au gestionnaire (ne vaut pas attribution)' + (pref.value ? ` — préférence : ${pref.value}` : ''));
+          persist(); render();
+        }));
+      } else box.append(el('p', perms.compare_and_advise?.reason || 'Avis non prévu par la fiche.', 'small'));
+      // Délégation de dépense (rare, vérifiée)
+      const deleg = config?.councilPresident?.delegations.authorizeExpenditure;
+      if (deleg) {
+        box.append(el('strong', '4. Délégation de dépense'));
+        box.append(el('p', `Délégation vérifiée : ${deleg.verifiedReference}, jusqu’à ${deleg.ceilingHT} € HT. La commande reste au gestionnaire.`, 'small'));
+        const row = el('div', undefined, 'actions');
+        for (const q of d.quotes) {
+          row.append(button(`Autoriser ${q.company} (${q.amountHT} € HT)`, async () => {
+            const { permission } = await api('/api/procedures/president-permission', { action: 'authorize_expenditure', amountHT: q.amountHT, config });
+            if (!permission.allowed) { msg.textContent = 'Autorisation impossible : ' + permission.reason; return; }
+            d.presidentAuthorization = { company: q.company, amountHT: q.amountHT, reference: deleg.verifiedReference };
+            log(d, `Président : dépense autorisée pour ${q.company} (${q.amountHT} € HT) dans sa délégation — commande à passer par le gestionnaire`);
+            persist(); render();
+          }, 'secondary'));
+        }
+        box.append(row);
+      }
+    }
+    box.append(msg);
+    wrap.append(box);
+  }
+
+  function observationTools(wrap, d) {
+    const det = el('details');
+    det.append(el('summary', 'Constat ou demande de vérification'));
+    const text = el('textarea'); text.maxLength = 1000; text.setAttribute('aria-label', 'Votre constat');
+    det.append(field('Votre constat', text));
+    const msg = el('p', '', 'small');
+    actions(det,
+      button('Enregistrer le constat', () => { if (!text.value.trim()) { msg.textContent = 'Décrivez votre constat.'; return; } log(d, 'Constat du président du CS : ' + text.value.trim().slice(0, 1000)); persist(); render(); }, 'secondary'),
+      config?.guardian && !d.checkRequest?.open ? button('Demander une vérification au gardien', () => { d.checkRequest = { open: true, at: now() }; log(d, 'Président du CS : vérification demandée au gardien (simulation)'); persist(); render(); }, 'secondary') : null,
+    );
+    det.append(msg);
+    wrap.append(det);
+  }
+
+  function councilView(host) {
+    if (!config?.councilPresident) { host.append(el('p', 'Aucun président renseigné dans la fiche de l’immeuble.', 'empty')); return; }
+    const open = cases.filter((d) => d.status !== 'closed');
+    const toVerify = cases.filter((d) => d.requiredVerifier === 'council' && ['verification', 'reserved'].includes(d.status));
+    const consult = open.filter((d) => !toVerify.includes(d) && ['manager_decision', 'quotes'].includes(d.status) && (d.decision?.councilRole === 'consultation' || d.quoteRequests?.length));
+    const followed = open.filter((d) => !toVerify.includes(d) && !consult.includes(d) && d.decision && (d.decision.councilRole !== 'none' || d.decision.notify.includes('council_president') || d.reportedBy === 'council_president'));
+    const others = open.filter((d) => ![...toVerify, ...consult, ...followed].includes(d));
+    const section = (title, list, emptyText, build) => {
+      const head = el('div', undefined, 'section-title'); head.append(el('h3', title), el('span', String(list.length), 'count')); host.append(head);
+      if (!list.length) host.append(el('p', emptyText, 'empty'));
+      for (const d of list) host.append(build(d));
+    };
+    section('À vérifier sur place', toVerify, 'Aucune vérification demandée.', (d) => {
+      const w = card(d, 'Vérifiez sur place la bonne exécution apparente (ce n’est pas une réception juridique).', 'Conforme : le gestionnaire clôture. Réserves : la clôture est bloquée.');
+      if (d.techReport) w.append(el('p', 'Compte rendu du technicien : ' + d.techReport, 'small'));
+      actions(w, ...verificationButtons(d, 'council'));
+      history(w, d); return w;
+    });
+    section('Consultations et devis', consult, 'Aucune consultation en cours.', (d) => {
+      const w = card(d, 'Recueillez et comparez les devis, puis transmettez votre avis au gestionnaire.', 'Le gestionnaire retient l’entreprise et passe commande.');
+      quoteTools(w, d); observationTools(w, d); history(w, d); return w;
+    });
+    section('Dossiers suivis', followed, 'Aucun dossier suivi.', (d) => {
+      const w = card(d, d.status === 'emergency' ? 'Information d’urgence : aucune action requise de votre part.' : null, nextStepText(d) || (d.status === 'manager_decision' ? 'Décision attendue du gestionnaire.' : ''));
+      if (d.advice) w.append(adviceBox(d));
+      observationTools(w, d); history(w, d); return w;
+    });
+    const det = el('details');
+    det.append(el('summary', `Autres dossiers de l’immeuble (${others.length})`));
+    for (const d of others) { const w = card(d, null, nextStepText(d)); observationTools(w, d); history(w, d); det.append(w); }
+    host.append(det);
   }
 
   // ---------- Résident ----------
@@ -435,9 +597,16 @@
     }
   }
 
+  // Les sections dépliées par l'utilisateur restent ouvertes quand l'écran se redessine.
+  function detailsKey(dt) {
+    const owner = dt.closest('[data-case]')?.dataset.case || dt.closest('section')?.id || '';
+    return owner + '|' + (dt.querySelector('summary')?.textContent || '').replace(/\s*\(\d+\)/g, '');
+  }
   function render() {
     const views = { resident: residentView, guardian: guardianView, manager: managerView, provider: providerView, council: councilView };
+    const open = new Set([...document.querySelectorAll('[id$="-cases"] details[open]')].map(detailsKey));
     for (const [name, view] of Object.entries(views)) { const host = byId(name + '-cases'); host.replaceChildren(); view(host); }
+    for (const dt of document.querySelectorAll('[id$="-cases"] details')) if (open.has(detailsKey(dt))) dt.open = true;
   }
 
   // ---------- Fiche de l'immeuble ----------
@@ -510,6 +679,7 @@
       try {
         const r = await api('/api/procedures/validate-config', { config: next });
         config = r.config; store.set(CONFIG_KEY, config);
+        await loadPerms();
         msg.append(el('p', 'Fiche enregistrée. Les prochains signalements suivront ces règles.', 'msg-ok'));
         if (r.warnings.length) { const ul = el('ul'); for (const w of r.warnings) ul.append(el('li', w)); msg.append(el('p', 'Informations manquantes (aucun engagement automatique sur ces points) :', 'small'), ul); }
         render();
@@ -518,7 +688,7 @@
         const ul = el('ul'); for (const e of err.details || []) ul.append(el('li', e)); box.append(ul); msg.append(box);
       }
     });
-    const reset = button('Revenir à la fiche de démonstration', () => { config = structuredClone(demoConfig); store.set(CONFIG_KEY, config); renderBuilding(); render(); }, 'secondary');
+    const reset = button('Revenir à la fiche de démonstration', async () => { config = structuredClone(demoConfig); store.set(CONFIG_KEY, config); await loadPerms(); renderBuilding(); render(); }, 'secondary');
     actions(form, save, reset);
     form.append(msg);
   }
@@ -548,8 +718,12 @@
     for (const t of catalog.types) if (!placed.has(t.id) && known.has(t.id)) { const o = el('option', t.label); o.value = t.id; other.append(o); }
     select.append(other);
     select.value = 'eclairage_commun';
-    role('resident');
+    await loadPerms();
+    // Conserver l'onglet choisi pendant le chargement (réseau lent).
+    role(current);
     render();
+    document.body.dataset.ready = 'true';
   }
+  role('resident');
   init();
 })();
