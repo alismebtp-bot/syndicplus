@@ -5,7 +5,7 @@
   "type": "module",
   "description": "SyndicPlus — gestion intelligente des incidents, de la maintenance et des travaux en copropriété",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "dev": "wrangler dev",
