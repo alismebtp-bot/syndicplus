@@ -19,7 +19,7 @@
     "deploy:production": "echo 'Déploiement production : validation explicite requise (voir docs/ARCHITECTURE.md)' && wrangler deploy"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.4.5",
+    "@cloudflare/vitest-plugin": "^1.4.7",
     "@playwright/test": "1.56",
     "typescript": "^5.9.3",
     "vitest": "4.1",
