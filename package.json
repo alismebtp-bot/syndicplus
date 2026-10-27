@@ -23,6 +23,6 @@
     "@playwright/test": "1.56",
     "typescript": "^5.9.3",
     "vitest": "4.1",
-    "wrangler": "^4.151.2"
+    "wrangler": "^4.152.0"
   }
 }
